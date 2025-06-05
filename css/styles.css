@@ -1,0 +1,698 @@
+/* Variables CSS */
+:root {
+    --fire: #ff9999;
+    --water: #99ccff;
+    --grass: #99ff99;
+    --electric: #ffff99;
+    --psychic: #ff99ff;
+    --fighting: #ffcc99;
+    --dark: #cccccc;
+    --metal: #ccccff;
+    --dragon: #99ccff;
+    --fairy: #ffcccc;
+    --poison: #cc99ff;
+    --ground: #e6cc99;
+    --rock: #cc9966;
+    --bug: #ccff99;
+    --ghost: #ccccff;
+    --ice: #ccffff;
+    --flying: #ccffff;
+    --darkness: #616163;
+    --card-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    --transition: all 0.3s ease;
+}
+
+/* Styles généraux */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+    color: #333;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 15px;
+    box-shadow: var(--card-shadow);
+    color: white;
+}
+
+.logo {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    color: #ffcc00;
+    text-shadow: 0 0 10px rgba(255, 204, 0, 0.7);
+}
+
+h1 {
+    font-size: 2.2rem;
+    margin-bottom: 15px;
+}
+
+/* Section principale */
+.game-container {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 20px;
+}
+
+/* Zones de jeu */
+.game-zone {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: var(--card-shadow);
+    margin-bottom: 20px;
+}
+
+.zone-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #eee;
+}
+
+.zone-title h2 {
+    color: #2c3e50;
+}
+
+/* Boutons */
+.btn {
+    background: linear-gradient(to right, #3498db, #2c3e50);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+.btn:disabled {
+    background: #95a5a6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-danger {
+    background: linear-gradient(to right, #e74c3c, #c0392b);
+}
+
+.btn-success {
+    background: linear-gradient(to right, #2ecc71, #27ae60);
+}
+
+/* Cartes */
+.cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    min-height: 200px;
+    padding: 15px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.card {
+    width: 120px;
+    height: 180px;
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    box-shadow: var(--card-shadow);
+    transform-style: preserve-3d;
+}
+
+.card:hover {
+    transform: translateY(-10px) rotate(2deg);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.card-front {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    backface-visibility: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.card-back {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    backface-visibility: hidden;
+    background: linear-gradient(135deg, #ff0000, #cc0000);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: rotateY(180deg);
+}
+
+.card-back img {
+    width: 70%;
+    height: auto;
+}
+
+.card-type {
+    font-size: 0.8rem;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 20px;
+    background: rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+
+.card-name {
+    font-weight: bold;
+    text-align: center;
+    font-size: 0.9rem;
+    margin: 5px 0;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+.card-image {
+    width: 100%;
+    height: 80px;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    margin: 5px 0;
+}
+
+.card-hp {
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: bold;
+    background: rgba(255, 255, 255, 0.3);
+    padding: 3px;
+    border-radius: 10px;
+}
+
+/* Zone de pioche */
+.draw-pile {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+}
+
+.pile-card {
+    width: 120px;
+    height: 180px;
+    background: linear-gradient(135deg, #ff0000, #cc0000);
+    border-radius: 10px;
+    box-shadow: var(--card-shadow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    transform-style: preserve-3d;
+}
+
+.pile-card:hover {
+    transform: translateY(-10px);
+}
+
+.pile-card img {
+    width: 70%;
+    height: auto;
+}
+
+/* Timer */
+.timer {
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 30px;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Modale */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 30px;
+    position: relative;
+    animation: modalFade 0.3s;
+}
+
+@keyframes modalFade {
+    from { opacity: 0; transform: translateY(-50px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.close-modal {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #e74c3c;
+    background: none;
+    border: none;
+}
+
+.card-detail {
+    text-align: center;
+}
+
+.card-detail-image {
+    width: 100%;
+    max-width: 300px;
+    margin: 15px auto;
+    border-radius: 10px;
+    box-shadow: var(--card-shadow);
+}
+
+.card-detail-info {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-top: 20px;
+    text-align: left;
+}
+
+.detail-item {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 10px;
+}
+
+/* Section de combat */
+.battle-section {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: var(--card-shadow);
+}
+
+.battle-container {
+    display: flex;
+    justify-content: space-around;
+    margin: 20px 0;
+}
+
+.battle-player {
+    text-align: center;
+    width: 45%;
+}
+
+.battle-player h3 {
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #eee;
+}
+
+.vs {
+    display: flex;
+    align-items: center;
+    font-size: 2rem;
+    font-weight: bold;
+    color: #e74c3c;
+}
+
+.battle-card {
+    width: 100%;
+    max-width: 200px;
+    margin: 0 auto;
+}
+
+.battle-result {
+    text-align: center;
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    font-weight: bold;
+}
+
+.rating-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid #eee;
+}
+
+.stars {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    margin: 15px 0;
+}
+
+.star {
+    font-size: 2rem;
+    color: #ddd;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.star:hover, .star.active {
+    color: #ffcc00;
+}
+
+.comment-box {
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    margin: 10px 0;
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Messages */
+.message {
+    padding: 15px;
+    border-radius: 10px;
+    margin: 15px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.message.success {
+    background: rgba(46, 204, 113, 0.2);
+    border-left: 4px solid #27ae60;
+}
+
+.message.error {
+    background: rgba(231, 76, 60, 0.2);
+    border-left: 4px solid #c0392b;
+}
+
+.message.info {
+    background: rgba(52, 152, 219, 0.2);
+    border-left: 4px solid #2980b9;
+}
+
+/* Styles pour le drag and drop */
+.card.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+}
+
+.cards-container.drop-over {
+    background: rgba(52, 152, 219, 0.2);
+    border: 2px dashed #3498db;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .game-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .battle-container {
+        flex-direction: column;
+        gap: 30px;
+    }
+    
+    .battle-player {
+        width: 100%;
+    }
+}
+/* =========================== */
+/* NOUVELLES CORRECTIONS DRAG & DROP */
+/* =========================== */
+
+/* Amélioration du feedback drag & drop */
+.card.dragging {
+    opacity: 0.5;
+    transform: rotate(5deg) scale(0.95);
+    transition: all 0.2s ease;
+}
+
+[data-drop-zone] {
+    transition: all 0.3s ease;
+    border-radius: 8px;
+}
+
+[data-drop-zone].drop-over {
+    background-color: rgba(0, 123, 255, 0.1);
+    border: 2px dashed #007bff;
+    transform: scale(1.02);
+}
+
+/* =========================== */
+/* AMÉLIORATION DES ZONES DE COMBAT */
+/* =========================== */
+
+/* Zone de combat du joueur */
+#playerBattleCard[data-drop-zone="battle-player"] {
+    min-height: 250px;
+    border: 2px dashed #28a745;
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(40, 167, 69, 0.05));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+#playerBattleCard[data-drop-zone="battle-player"]:empty::before {
+    content: "🎯 Glissez une carte ici pour combattre";
+    color: #28a745;
+    font-weight: bold;
+    text-align: center;
+    opacity: 0.7;
+    font-size: 1.1rem;
+}
+
+#playerBattleCard[data-drop-zone="battle-player"].drop-over {
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.2), rgba(40, 167, 69, 0.1));
+    border-color: #28a745;
+    border-width: 3px;
+}
+
+/* Zone de l'adversaire */
+#opponentBattleCard {
+    min-height: 250px;
+    border: 2px dashed #dc3545;
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.1), rgba(220, 53, 69, 0.05));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+}
+
+#opponentBattleCard:empty::before {
+    content: "🤖 L'adversaire apparaîtra ici";
+    color: #dc3545;
+    font-weight: bold;
+    text-align: center;
+    opacity: 0.7;
+    font-size: 1.1rem;
+}
+
+/* Cartes dans les zones de combat */
+.battle-card {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+    padding: 10px;
+}
+
+.battle-card .card {
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+    width: 100% !important;
+    max-width: 180px !important;
+    height: 250px !important;
+}
+
+.battle-card .card:hover {
+    transform: translateY(-5px);
+}
+
+.battle-card.player .card {
+    border: 3px solid #28a745;
+    box-shadow: 0 8px 16px rgba(40, 167, 69, 0.3);
+}
+
+.battle-card.opponent .card {
+    border: 3px solid #dc3545;
+    box-shadow: 0 8px 16px rgba(220, 53, 69, 0.3);
+}
+
+/* Amélioration des images dans les cartes de combat */
+.battle-card .card-image {
+    background-size: contain !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    margin: 8px 0;
+    height: 100px !important;
+}
+
+/* Styles pour les attaques dans les cartes de combat */
+.battle-card .card-attacks {
+    font-size: 0.8em;
+    margin-top: 5px;
+    padding: 4px 8px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 8px;
+    text-align: center;
+}
+
+/* Animation pour les nouvelles cartes ajoutées */
+@keyframes cardAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.8) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.battle-card {
+    animation: cardAppear 0.5s ease-out;
+}
+
+/* =========================== */
+/* AMÉLIORATION DE LA ZONE DE PIOCHE POUR LE DROP */
+/* =========================== */
+
+#drawPile[data-drop-zone="pile"] {
+    transition: all 0.3s ease;
+}
+
+#drawPile[data-drop-zone="pile"].drop-over {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(255, 193, 7, 0.1));
+    border: 2px dashed #ffc107;
+    transform: scale(1.05);
+}
+
+.draw-pile {
+    position: relative;
+}
+
+.draw-pile::after {
+    content: "Défausser ici";
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.8rem;
+    color: #666;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.draw-pile.drop-over::after {
+    opacity: 1;
+}
+
+/* =========================== */
+/* AMÉLIORATION DES MESSAGES DE FEEDBACK */
+/* =========================== */
+
+.message {
+    animation: slideIn 0.5s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* =========================== */
+/* RESPONSIVE POUR LES ZONES DE COMBAT */
+/* =========================== */
+
+@media (max-width: 768px) {
+    .battle-card .card {
+        max-width: 150px !important;
+        height: 220px !important;
+    }
+    
+    .battle-card .card-image {
+        height: 80px !important;
+    }
+    
+    #playerBattleCard[data-drop-zone="battle-player"]:empty::before,
+    #opponentBattleCard:empty::before {
+        font-size: 0.9rem;
+    }
+}
