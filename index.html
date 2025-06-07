@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/styles.css">
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -24,13 +26,14 @@
                     <div class="zone-title">
                         <h2><i class="fas fa-draw-polygon"></i> Pioche</h2>
                         <div class="timer">
-                            <i class="fas fa-clock"></i> 
+                            <i class="fas fa-clock"></i>
                             <span id="timer">Prochain tirage dans: 5:00</span>
                         </div>
                     </div>
                     <div class="draw-pile" id="drawPile" data-drop-zone="pile">
                         <div class="pile-card">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Pok%C3%A9_Ball_icon.svg/768px-Pok%C3%A9_Ball_icon.svg.png" alt="Pokeball">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Pok%C3%A9_Ball_icon.svg/768px-Pok%C3%A9_Ball_icon.svg.png"
+                                alt="Pokeball">
                         </div>
                     </div>
                 </div>
@@ -53,7 +56,7 @@
                 <div class="zone-title">
                     <h2><i class="fas fa-fist-raised"></i> Zone de Combat</h2>
                 </div>
-                
+
                 <div class="battle-container">
                     <div class="battle-player">
                         <h3>Vous</h3>
@@ -61,9 +64,9 @@
                             <!-- Carte de combat du joueur -->
                         </div>
                     </div>
-                    
+
                     <div class="vs">VS</div>
-                    
+
                     <div class="battle-player">
                         <h3>Adversaire</h3>
                         <div class="cards-container" id="opponentBattleCard" data-drop-zone="battle-opponent">
@@ -71,15 +74,15 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="battle-result" id="battleResult">
                     Sélectionnez une carte pour commencer un combat
                 </div>
-                
+
                 <button class="btn btn-success" id="startBattleBtn" disabled>
                     <i class="fas fa-play"></i> Commencer le combat
                 </button>
-                
+
                 <div class="rating-section" id="ratingSection" style="display: none;">
                     <h3>Évaluer votre adversaire</h3>
                     <div class="stars">
@@ -111,6 +114,7 @@
     <script src="js/pokemonCard.js"></script>
     <script src="js/deckManager.js"></script>
     <script src="js/storageManager.js"></script>
-    <script src="app.js"></script>
+    <script src="js/app.js"></script>
 </body>
+
 </html>
