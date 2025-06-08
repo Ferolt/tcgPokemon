@@ -1,59 +1,109 @@
 .pokemon-card-holo {
-  width: 245px;
-  height: 342px;
-  position: relative;
-  border-radius: 11px;
-  overflow: hidden;
-  cursor: pointer;
-  margin: 10px;
-  transition: transform .3s ease;
-  box-shadow: 0 8px 25px rgba(0,0,0,.25);
+width: 245px;
+height: 342px;
+position: relative;
+border-radius: 11px;
+overflow: hidden;
+cursor: pointer;
+margin: 10px;
+transition: transform 0.3s ease;
+box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
 }
 .pokemon-card-holo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 11px;
-  transition: transform .1s ease-out;
+width: 100%;
+height: 100%;
+object-fit: cover;
+border-radius: 11px;
+transition: transform 0.1s ease-out;
 }
-.pokemon-card-holo:hover .card-overlay { opacity: 1; }
+.pokemon-card-holo:hover {
+z-index: 10;
+}
 .card-overlay {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  background: linear-gradient(transparent, rgba(0,0,0,.8));
-  padding: 15px;
-  opacity: 0;
-  transition: opacity .3s ease;
-  pointer-events: none;
+position: absolute;
+bottom: 0;
+left: 0;
+right: 0;
+background: linear-gradient(transparent, rgba(0,0,0,0.8));
+padding: 15px;
+opacity: 0;
+transition: opacity 0.3s ease;
+pointer-events: none;
 }
-.card-info { color: #fff; text-align: center; }
-.card-name { font-weight: 700; font-size: 1.1rem; margin-bottom: 5px; text-shadow: 0 1px 3px rgba(0,0,0,.8); }
-.card-set  { font-size: .8rem; opacity: .8; }
-
-.pokemon-card-holo.rare       { box-shadow: 0 8px 25px rgba(255,215,0,.4); }
-.pokemon-card-holo.legendary  { box-shadow: 0 8px 25px rgba(138,43,226,.4); }
-
-.battle-zone .pokemon-card-holo { width: 180px; height: 251px; }
-.player-hand .pokemon-card-holo { width: 120px; height: 168px; margin: 5px; }
-
+.pokemon-card-holo:hover .card-overlay {
+opacity: 1;
+}
+.card-info {
+color: white;
+text-align: center;
+}
+.card-name {
+font-weight: bold;
+font-size: 1.1rem;
+margin-bottom: 5px;
+text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}
+.card-set {
+font-size: 0.8rem;
+opacity: 0.8;
+}
+.pokemon-card-holo.rare {
+box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+}
+.pokemon-card-holo.legendary {
+box-shadow: 0 8px 25px rgba(138, 43, 226, 0.4);
+}
+.battle-zone .pokemon-card-holo {
+width: 180px;
+height: 251px;
+}
+.player-hand .pokemon-card-holo {
+width: 120px;
+height: 168px;
+margin: 5px;
+}
 @media (max-width: 768px) {
-  .pokemon-card-holo                { width: 150px; height: 210px; }
-  .battle-zone .pokemon-card-holo   { width: 140px; height: 196px; }
-  .player-hand .pokemon-card-holo   { width: 100px; height: 140px; }
+.pokemon-card-holo {
+width: 150px;
+height: 210px;
 }
-
+.battle-zone .pokemon-card-holo {
+width: 140px;
+height: 196px;
+}
+.player-hand .pokemon-card-holo {
+width: 100px;
+height: 140px;
+}
+}
 .pokemon-card-holo.loading {
-  background: linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: loading-shimmer 1.5s infinite;
+background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+background-size: 200% 100%;
+animation: loading-shimmer 1.5s infinite;
 }
-@keyframes loading-shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
-
-.js-tilt-glare,
-.js-tilt-glare-inner { pointer-events:none; position:absolute; }
-.js-tilt-glare       { top:0;left:0;width:100%;height:100%;border-radius:11px;overflow:hidden; }
+@keyframes loading-shimmer {
+0% { background-position: -200% 0; }
+100% { background-position: 200% 0; }
+}
+.js-tilt-glare {
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+border-radius: 11px;
+pointer-events: none;
+overflow: hidden;
+}
 .js-tilt-glare-inner {
-  top:50%;left:50%;width:100%;height:100%;
-  background:linear-gradient(0deg,transparent,rgba(255,255,255,.6),transparent);
-  opacity:0; transform:rotate(180deg) translate(-50%,-50%); transform-origin:0 0;
+position: absolute;
+top: 50%;
+left: 50%;
+width: 100%;
+height: 100%;
+background: linear-gradient(0deg, transparent, rgba(255,255,255,0.6), transparent);
+opacity: 0;
+pointer-events: none;
+transform: rotate(180deg) translate(-50%, -50%);
+transform-origin: 0% 0%;
 }
