@@ -4,75 +4,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pokémon Trading Card Game</title>
+    <title> Pokémon TCG</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link
         href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Exo+2:wght@300;400;600;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/pokemon-holo-cards.css">
+    <link rel="stylesheet" href="css/modal-styles.css">
+    <link rel="stylesheet" href="css/spectacular-animations.css">
+
 </head>
 
 <body>
 
 
-  <header class="site-header neon-glow">
-    <h1><i class="fas fa-bolt"></i> Pokémon TCG Pocket</h1>
-    <p class="tagline">Collection &amp; mini-battles</p>
-  </header>
+    <header class="site-header neon-glow">
+        <h1><i class="fas fa-bolt"></i> Pokémon TCG</h1>
+        <p class="tagline">Collection &amp; mini-battles</p>
+    </header>
 
 
-  <main class="layout-grid">
+    <main class="layout-grid">
 
 
-    <section id="draw-zone" class="zone draw">
-      <h2 class="zone-title"><i class="fas fa-clone"></i> Pioche</h2>
-      <button id="draw-btn" class="primary-btn">
-        <i class="fas fa-download"></i>
-        Piocher&nbsp;5
-      </button>
-      <p class="hint">
-        Cartes restantes&nbsp;:
-        <span id="remaining-count">–</span>
-      </p>
-    </section>
-
-    
-    <section id="battle-zone" class="zone battle">
-      <h2 class="zone-title"><i class="fas fa-fire"></i> Combat</h2>
-      <div id="player-slot" class="card-slot placeholder">Vous</div>
-      <div id="ai-slot" class="card-slot placeholder">IA</div>
-    </section>
-
-    <section id="hand-zone" class="zone hand">
-      <h2 class="zone-title"><i class="fas fa-hand-paper"></i> Main</h2>
-      <ul id="hand-list" class="hand-cards"></ul>
-    </section>
+        <section id="draw-zone" class="zone draw">
+            <h2 class="zone-title"><i class="fas fa-clone"></i> Pioche</h2>
+            <button id="draw-btn" class="primary-btn">
+                <i class="fas fa-download"></i>
+                Piocher&nbsp;5
+            </button>
+            <p class="hint">
+                Cartes restantes&nbsp;:
+                <span id="remaining-count">–</span>
+            </p>
+        </section>
 
 
-    <section id="stats-zone" class="zone stats">
-      <h2 class="zone-title"><i class="fas fa-chart-line"></i> Stats</h2>
-      <ul class="stats-list">
-        <li>Victoires&nbsp;: <span id="wins">0</span></li>
-        <li>Défaites&nbsp;: <span id="losses">0</span></li>
-        <li>Win-rate&nbsp;: <span id="winrate">–&nbsp;%</span></li>
-      </ul>
-      <button id="new-game-btn" class="secondary-btn">
-        <i class="fas fa-redo"></i>
-        Nouvelle&nbsp;partie
-      </button>
-    </section>
+        <section id="battle-zone" class="zone battle">
+            <h2 class="zone-title"><i class="fas fa-fire"></i> Combat</h2>
+            <div id="player-slot" class="card-slot placeholder">Vous</div>
+            <div id="ai-slot" class="card-slot placeholder">IA</div>
+        </section>
 
-  </main>
+        <section id="hand-zone" class="zone hand">
+            <h2 class="zone-title"><i class="fas fa-hand-paper"></i> Main</h2>
+            <ul id="hand-list" class="hand-cards"></ul>
+        </section>
 
- 
-  <dialog id="card-modal"></dialog>
 
-  <script src="https://cdn.jsdelivr.net/npm/vanilla-tilt@1.8.0/dist/vanilla-tilt.min.js"></script>
+        <section id="stats-zone" class="zone stats">
+            <h2 class="zone-title"><i class="fas fa-chart-line"></i> Stats</h2>
+            <ul class="stats-list">
+                <li>Victoires&nbsp;: <span id="wins">0</span></li>
+                <li>Défaites&nbsp;: <span id="losses">0</span></li>
+                <li>Win-rate&nbsp;: <span id="winrate">–&nbsp;%</span></li>
+            </ul>
+            <button id="new-game-btn" class="secondary-btn">
+                <i class="fas fa-redo"></i>
+                Nouvelle&nbsp;partie
+            </button>
+        </section>
 
-  <script src="js/app.js"></script>
-  <script src="js/deckManager.js"></script>
-  <script src="js/pokemonCard.js"></script>
-  <script src="js/storageManager.js"></script>
+    </main>
+
+
+    <dialog id="card-modal"></dialog>
+
+    <script src="https://cdn.jsdelivr.net/npm/vanilla-tilt@1.8.0/dist/vanilla-tilt.min.js"></script>
+
+    <script src="js/app.js"></script>
+    <script src="js/deckManager.js"></script>
+    <script src="js/pokemonCard.js"></script>
+    <script src="js/storageManager.js"></script>
 </body>
 
 </html>
