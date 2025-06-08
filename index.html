@@ -18,66 +18,206 @@
 
 <body>
 
-
-    <header class="site-header neon-glow">
-        <h1><i class="fas fa-bolt"></i> Pokémon TCG</h1>
-        <p class="tagline">Collection &amp; mini-battles</p>
+    <header class="header">
+        <div class="header-content">
+            <h1 class="logo">
+                <i class="fas fa-bolt"></i>
+                Pokémon TCG Pocket
+            </h1>
+            <div class="header-stats">
+                <div class="stat-item">
+                    <i class="fas fa-layer-group"></i>
+                    <span>Deck: <span id="deck-count">50</span></span>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-hand-paper"></i>
+                    <span>Main: <span id="hand-count">0</span></span>
+                </div>
+            </div>
+        </div>
     </header>
 
+    <main class="main-container">
+        
+        <!-- pioche -->
+        <section class="draw-section">
+            <div class="draw-container">
+                <button id="draw-btn" class="draw-button">
+                    <i class="fas fa-magic"></i>
+                    <span class="draw-text">Piocher 5 cartes</span>
+                    <div class="button-glow"></div>
+                </button>
+                <div id="draw-timer" class="draw-timer hidden">
+                    <i class="fas fa-clock"></i>
+                    <span id="timer-text">Attendre: 4:59</span>
+                </div>
+            </div>
+        </section>
 
-    <main class="layout-grid">
-
-
-        <section id="draw-zone" class="zone draw">
-            <h2 class="zone-title"><i class="fas fa-clone"></i> Pioche</h2>
-            <button id="draw-btn" class="primary-btn">
-                <i class="fas fa-download"></i>
-                Piocher&nbsp;5
+        <!-- zone combat  -->
+        <section class="battle-zone">
+            <h2 class="section-title">
+                <i class="fas fa-fire"></i>
+                Zone de Combat
+            </h2>
+            <div class="battle-area">
+                <div class="player-zone">
+                    <h3>Ma carte</h3>
+                    <div id="player-card-zone" class="card-drop-zone">
+                        <div class="drop-hint">
+                            <i class="fas fa-plus"></i>
+                            <span>Glissez une carte ici</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="vs-divider">
+                    <div class="vs-text">VS</div>
+                </div>
+                <div class="ai-zone">
+                    <h3>Carte IA</h3>
+                    <div id="ai-card-zone" class="card-zone">
+                        <div class="ai-hint">
+                            <i class="fas fa-robot"></i>
+                            <span>IA en attente...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button id="battle-btn" class="battle-button hidden">
+                <i class="fas fa-sword-cross"></i>
+                <span>Commencer le Combat</span>
+                <div class="button-glow"></div>
             </button>
-            <p class="hint">
-                Cartes restantes&nbsp;:
-                <span id="remaining-count">–</span>
-            </p>
         </section>
 
-
-        <section id="battle-zone" class="zone battle">
-            <h2 class="zone-title"><i class="fas fa-fire"></i> Combat</h2>
-            <div id="player-slot" class="card-slot placeholder">Vous</div>
-            <div id="ai-slot" class="card-slot placeholder">IA</div>
+        <!-- la main -->
+        <section class="hand-section">
+            <h2 class="section-title">
+                <i class="fas fa-hand-paper"></i>
+                Ma Main
+                <button id="exchange-btn" class="exchange-button">
+                    <i class="fas fa-exchange-alt"></i>
+                    <span>Échanger carte</span>
+                </button>
+            </h2>
+            <div id="player-hand" class="hand-container">
+                <div class="empty-hand">
+                    <i class="fas fa-cards-blank"></i>
+                    <p>Votre main est vide</p>
+                    <p>Piochez des cartes pour commencer !</p>
+                </div>
+            </div>
         </section>
 
-        <section id="hand-zone" class="zone hand">
-            <h2 class="zone-title"><i class="fas fa-hand-paper"></i> Main</h2>
-            <ul id="hand-list" class="hand-cards"></ul>
-        </section>
-
-
-        <section id="stats-zone" class="zone stats">
-            <h2 class="zone-title"><i class="fas fa-chart-line"></i> Stats</h2>
-            <ul class="stats-list">
-                <li>Victoires&nbsp;: <span id="wins">0</span></li>
-                <li>Défaites&nbsp;: <span id="losses">0</span></li>
-                <li>Win-rate&nbsp;: <span id="winrate">–&nbsp;%</span></li>
-            </ul>
-            <button id="new-game-btn" class="secondary-btn">
+        <!-- bouton nvl partie -->
+        <section class="game-controls">
+            <button id="new-game-btn" class="new-game-button">
                 <i class="fas fa-redo"></i>
-                Nouvelle&nbsp;partie
+                <span>Nouvelle Partie</span>
             </button>
         </section>
-
     </main>
 
+    <!--  carte -->
+    <div id="card-modal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <button class="modal-close">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="modal-card-container">
+                <div id="modal-card" class="pokemon-card modal-card">
+                
+                </div>
+                <div class="card-details">
+                    <h2 id="modal-name"></h2>
+                    <div class="card-stats">
+                        <div class="stat">
+                            <span class="stat-label">Type:</span>
+                            <span id="modal-type" class="stat-value"></span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">HP:</span>
+                            <span id="modal-hp" class="stat-value"></span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Attaque:</span>
+                            <span id="modal-attack" class="stat-value"></span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Défense:</span>
+                            <span id="modal-defense" class="stat-value"></span>
+                        </div>
+                    </div>
+                    <div class="attacks-section">
+                        <h3>Attaques</h3>
+                        <div id="modal-attacks" class="attacks-list">
+                        
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <dialog id="card-modal"></dialog>
+   
+    <div id="battle-overlay" class="battle-overlay hidden">
+        <div class="battle-animation">
+            <div class="vs-animation">
+                <div class="vs-text-large">VS</div>
+                <div class="battle-sparks"></div>
+            </div>
+        </div>
+    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/vanilla-tilt@1.8.0/dist/vanilla-tilt.min.js"></script>
+   
+    <div id="result-overlay" class="result-overlay hidden">
+        <div class="result-content">
+            <div class="result-icon">
+                <i id="result-icon" class="fas fa-trophy"></i>
+            </div>
+            <h2 id="result-title">Victoire !</h2>
+            <p id="result-message">Votre Pokémon a triomphé !</p>
+            
+            <!-- notation -->
+            <div class="rating-section">
+                <h3>Évaluez ce combat</h3>
+                <div class="stars-rating">
+                    <i class="fas fa-star star-rating" data-rating="1"></i>
+                    <i class="fas fa-star star-rating" data-rating="2"></i>
+                    <i class="fas fa-star star-rating" data-rating="3"></i>
+                    <i class="fas fa-star star-rating" data-rating="4"></i>
+                    <i class="fas fa-star star-rating" data-rating="5"></i>
+                </div>
+                <textarea id="battle-comment" placeholder="Commentez ce combat (optionnel)..."></textarea>
+                <button id="submit-rating" class="submit-rating-btn">
+                    <i class="fas fa-check"></i>
+                    Valider
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p class="loading-text">Chargement...</p>
+        </div>
+    </div>
+
+    <div id="notification" class="notification hidden">
+        <div class="notification-content">
+            <i class="notification-icon"></i>
+            <span class="notification-text"></span>
+        </div>
+    </div>
 
     <script src="js/pokemonTCGAPI.js"></script>
-    <script src="js/app.js"></script>
-    <script src="js/deckManager.js"></script>
     <script src="js/pokemonCard.js"></script>
     <script src="js/storageManager.js"></script>
+    <script src="js/deckManager.js"></script>
+    <script src="js/app.js"></script>
 </body>
 
 </html>
