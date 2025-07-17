@@ -1,5 +1,3 @@
-// gerer la pioche,  distribution des cartes
- 
 class DeckManager {
     constructor(storageManager) {
         this.storage = storageManager;
@@ -29,7 +27,7 @@ class DeckManager {
             const minutes = Math.floor(timeLeft / 60000);
             const seconds = Math.floor((timeLeft % 60000) / 1000);
             
-            this.showNotification(
+            window.app.showNotification(
                 `Attendre encore ${minutes}:${seconds.toString().padStart(2, '0')}`,
                 'warning'
             );
@@ -40,7 +38,7 @@ class DeckManager {
         
         
         if (deck.length < 5) {
-            this.showNotification('Deck insuffisant ! Nouvelle partie requise.', 'error');
+            window.app.showNotification('Deck insuffisant ! Nouvelle partie requise.', 'error');
             return;
         }
 
@@ -68,13 +66,13 @@ class DeckManager {
             await this.updateUI();
             
            
-            this.playDrawSound();
+            window.app.playDrawSound();
             
-            this.showNotification('5 cartes piochées !', 'success');
+            window.app.showNotification('5 cartes piochées !', 'success');
             
         } catch (error) {
 
-            this.showNotification('Erreur lors de la pioche', 'error');
+            window.app.showNotification('Erreur lors de la pioche', 'error');
         } finally {
             this.isDrawing = false;
         }
@@ -535,21 +533,7 @@ class DeckManager {
         return drawnCard;
     }
 
-    
-    playDrawSound() {
-        if (window.app) {
-            window.app.playDrawSound();
-        }
-    }
-
-    
-    showNotification(message, type = 'info') {
-        if (window.app) {
-            window.app.showNotification(message, type);
-        }
-    }
-
-   
+ 
     startDragEffects(cardElement) {
         
         const trail = document.createElement('div');

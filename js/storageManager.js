@@ -20,13 +20,15 @@ class StorageManager {
     //init des données par defaut si n'existent pas
      
     initializeDefaultData() {
-        if (!this.getDeck()) {
+        const deck = this.getDeck();
+        if (!deck) {
             
             const initialDeck = window.pokemonCardManager ? window.pokemonCardManager.getAllCards().map(card => card.id) : [];
             this.saveDeck(initialDeck);
         }
 
-        if (!this.getHand()) {
+        const hand = this.getHand();
+        if (!hand) {
             this.saveHand([]);
         }
 
@@ -69,7 +71,6 @@ class StorageManager {
             return true;
         } catch (error) {
 
-            this.showNotification('Erreur de sauvegarde', 'error');
             return false;
         }
     }
@@ -493,53 +494,32 @@ class StorageManager {
         if (invalidHandCards.length > 0) {
             issues.push(`Cartes invalides dans la main: ${invalidHandCards.join(', ')}`);
         }
-        
         return {
             isValid: issues.length === 0,
             issues
         };
     }
 
-
     repairData() {
         const validIds = window.pokemonCardManager ? window.pokemonCardManager.getAllCards().map(card => card.id) : [];
-        
-      
         const deck = this.getDeck();
         const cleanDeck = deck.filter(id => validIds.includes(id));
         if (cleanDeck.length !== deck.length) {
             this.saveDeck(cleanDeck);
         }
-       
         const hand = this.getHand();
         const cleanHand = hand.filter(id => validIds.includes(id));
         if (cleanHand.length !== hand.length) {
             this.saveHand(cleanHand);
         }
-     
         const playerCard = this.getPlayerCard();
         const aiCard = this.getAICard();
-        
         if (playerCard && !validIds.includes(playerCard)) {
             this.remove(this.keys.PLAYER_CARD);
         }
-        
         if (aiCard && !validIds.includes(aiCard)) {
             this.remove(this.keys.AI_CARD);
         }
-        
         return true;
     }
-
-   
-    showNotification(message, type = 'info') {
-       
-        if (window.app && window.app.showNotification) {
-            window.app.showNotification(message, type);
-        }
-    }
-}
-
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = StorageManager;
 }

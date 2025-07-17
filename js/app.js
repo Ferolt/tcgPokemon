@@ -7,7 +7,6 @@ class PokemonTCGApp {
         this.initializeApp();
     }
 
-    //init app 
     async initializeApp() {
         try {
             await this.loadGameState();
@@ -28,8 +27,7 @@ class PokemonTCGApp {
         }
     }
 
-  //init ecouteur d'evenement
-    async initializeEventListeners() {
+  async initializeEventListeners() {
         //  combat
         const battleBtn = document.getElementById('battle-btn');
         if (battleBtn) {
@@ -70,9 +68,7 @@ class PokemonTCGApp {
         }
     }
 
-    // echange carte
-     
-        async exchangeHandToDeck() {
+    async exchangeHandToDeck() {
     
         const playerCardId = this.storage.getPlayerCard();
         const aiCardId = this.storage.getAICard();
@@ -111,8 +107,6 @@ class PokemonTCGApp {
         }
     }
 
-    // animation échange cartes
-    
     async playExchangeAnimation() {
         const playerZone = document.getElementById('player-card-zone');
         const aiZone = document.getElementById('ai-card-zone');
@@ -151,8 +145,6 @@ class PokemonTCGApp {
         }
     }
 
-    // init  drag  drop
-     
     async initializeDragAndDrop() {
         const dropZone = document.getElementById('player-card-zone');
         if (!dropZone) return;
@@ -205,8 +197,6 @@ class PokemonTCGApp {
         e.stopPropagation();
     }
 
-    // depot carte dans la zone combzt
-     
     dropCardToBattle(cardId) {
         const hand = this.storage.getHand();
         const cardIndex = hand.indexOf(cardId);

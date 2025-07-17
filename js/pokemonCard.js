@@ -1,4 +1,3 @@
-// carte pokemon
 class PokemonCard {
     constructor(data) {
         this.id = data.id;
@@ -74,14 +73,10 @@ class PokemonCard {
         return modalCard;
     }
 
-    // calcul puissance totale de la carte 
-     
     getPowerLevel() {
         return this.hp + this.attack + this.defense;
     }
 
-    // détails de la carte
-     
     getDetails() {
         return {
             id: this.id,
@@ -98,7 +93,6 @@ class PokemonCard {
     }
 }
 
-// carte pokemon
 const pokemonCardsData = [
 
     { id: 'pikachu', name: 'Pikachu', type: 'Electric', hp: 60, attack: 55, defense: 40, image: 'https://images.pokemontcg.io/base1/58_hires.png', rarity: 'common', attacks: [{ name: 'Éclair', damage: 20 }, { name: 'Tonnerre', damage: 40 }] },
@@ -131,8 +125,6 @@ const pokemonCardsData = [
     { id: 'zapdos', name: 'Électhor', type: 'Electric', hp: 125, attack: 90, defense: 85, image: 'https://images.pokemontcg.io/fossil/15_hires.png', rarity: 'legendary', attacks: [{ name: 'Éclair', damage: 40 }, { name: 'Fatal-Foudre', damage: 130 }] },
     { id: 'moltres', name: 'Sulfura', type: 'Fire', hp: 125, attack: 100, defense: 90, image: 'https://images.pokemontcg.io/fossil/12_hires.png', rarity: 'legendary', attacks: [{ name: 'Lance-Flammes', damage: 60 }, { name: 'Ciel Ardent', damage: 140 }] }
 ];
-
-//gestion cartes pokemon avec API 
 
 class PokemonCardManager {
     constructor() {
