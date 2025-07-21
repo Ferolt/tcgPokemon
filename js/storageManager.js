@@ -68,8 +68,10 @@ class StorageManager {
     save(key, value) {
         try {
             localStorage.setItem(key, JSON.stringify(value));
-        } catch (e) {
-            alert('Erreur lors de l\'enregistrement dans le stockage local.');
+            return true;
+        } catch (error) {
+
+            return false;
         }
     }
 
@@ -77,10 +79,10 @@ class StorageManager {
      
     load(key) {
         try {
-            const data = localStorage.getItem(key);
-            return data ? JSON.parse(data) : null;
-        } catch (e) {
-            alert('Erreur d\'accès au stockage local.');
+            const value = localStorage.getItem(key);
+            return value ? JSON.parse(value) : null;
+        } catch (error) {
+
             return null;
         }
     }
@@ -89,8 +91,10 @@ class StorageManager {
     remove(key) {
         try {
             localStorage.removeItem(key);
-        } catch (e) {
-            alert('Erreur lors de la suppression dans le stockage local.');
+            return true;
+        } catch (error) {
+
+            return false;
         }
     }
 

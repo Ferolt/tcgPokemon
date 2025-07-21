@@ -438,12 +438,12 @@ class DeckManager {
             try {
                 const card = await window.pokemonCardManager?.getCardById(cardId);
                 if (card) {
-                    const cardElement = window.PokemonCard.createCardElement(card);
+                    const cardElement = card.createElement();
                     this.addCardEventListeners(cardElement, card);
                     handContainer.appendChild(cardElement);
                 }
             } catch (error) {
-                window.app?.showNotification('Erreur lors de l\'affichage d\'une carte.', 'error');
+
             }
         }
     }
