@@ -1,5 +1,8 @@
 class PokemonCard {
     constructor(data) {
+        if (!data || !data.id || !data.name || !data.image) {
+            throw new Error('Données de carte invalides');
+        }
         this.id = data.id;
         this.name = data.name;
         this.type = data.type;
@@ -13,26 +16,23 @@ class PokemonCard {
         this.set = data.set;
     }
 
-    
-    createElement() {
+    static createCardElement(cardData) {
+        if (!cardData) return null;
         const card = document.createElement('div');
-        card.className = `pokemon-card-holo ${this.rarity}`;
-        card.setAttribute('data-id', this.id);
+        card.className = `pokemon-card-holo ${cardData.rarity}`;
+        card.setAttribute('data-id', cardData.id);
         card.draggable = true;
-        
-        const imageUrl = this.holoImage || this.image;
-        
+        const imageUrl = cardData.holoImage || cardData.image;
         card.innerHTML = `
-            <img src="${imageUrl}" alt="${this.name}" loading="lazy" 
+            <img src="${imageUrl}" alt="${cardData.name}" loading="lazy" 
                  onerror="this.src='https://images.pokemontcg.io/base1/4_hires.png'" />
             <div class="card-overlay">
                 <div class="card-info">
-                    <div class="card-name">${this.name}</div>
-                    <div class="card-set">${this.set || ''}</div>
+                    <div class="card-name">${cardData.name}</div>
+                    <div class="card-set">${cardData.set || ''}</div>
                 </div>
             </div>
         `;
-
         if (typeof VanillaTilt !== 'undefined') {
             VanillaTilt.init(card, {
                 max: 25,
@@ -42,8 +42,11 @@ class PokemonCard {
                 scale: 1.05
             });
         }
-        
         return card;
+    }
+
+    createElement() {
+        return PokemonCard.createCardElement(this);
     }
 
  

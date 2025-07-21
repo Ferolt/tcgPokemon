@@ -416,23 +416,19 @@ class PokemonTCGApp {
     async updatePlayerBattleCard() {
         const playerZone = document.getElementById('player-card-zone');
         const playerCardId = this.storage.getPlayerCard();
-        
         if (!playerZone) return;
-        
         if (playerCardId) {
             try {
                 const card = await window.pokemonCardManager?.getCardById(playerCardId);
                 if (card) {
-                    const cardElement = card.createElement();
-                    
+                    const cardElement = window.PokemonCard.createCardElement(card);
                     cardElement.style.margin = '0';
                     cardElement.addEventListener('click', () => this.showCardModal(card));
-                    
                     playerZone.innerHTML = '';
                     playerZone.appendChild(cardElement);
                 }
             } catch (error) {
-
+                this.showNotification('Erreur lors de l\'affichage de la carte en combat.', 'error');
             }
         } else {
             playerZone.innerHTML = `
@@ -456,7 +452,7 @@ class PokemonTCGApp {
                 const card = await window.pokemonCardManager?.getCardById(aiCardId);
                 
                 if (card) {
-                    const cardElement = card.createElement();
+                    const cardElement = window.PokemonCard.createCardElement(card);
                     cardElement.style.margin = '0';
                     cardElement.addEventListener('click', () => this.showCardModal(card));
                     
@@ -713,88 +709,19 @@ class PokemonTCGApp {
     async showCardModal(cardData) {
         const modal = document.getElementById('card-modal');
         if (!modal) return;
-
         try {
-            
             let card = cardData;
             if (typeof cardData === 'string') {
                 card = await window.pokemonCardManager?.getCardById(cardData);
             }
-            
             if (!card) return;
-
-            // contenue modal
-            modal.innerHTML = `
-                <div class="modal-backdrop" onclick="window.app.hideCardModal()">
-                    <div class="modal-content" onclick="event.stopPropagation()">
-                        <button class="modal-close" onclick="window.app.hideCardModal()">
-                            <i class="fas fa-times"></i>
-                        </button>
-                        
-                        <div class="modal-card-container">
-                            <div class="modal-card-image">
-                                <img src="${card.image}" alt="${card.name}" 
-                                     onerror="this.src='https://images.pokemontcg.io/base1/4_hires.png'" />
-                            </div>
-                            
-                            <div class="modal-card-details">
-                                <h2 class="card-name">${card.name}</h2>
-                                <div class="card-info-grid">
-                                    <div class="info-item">
-                                        <span class="label">Type:</span>
-                                        <span class="value">${card.type}</span>
-                                    </div>
-                                    <div class="info-item">
-                                        <span class="label">Set:</span>
-                                        <span class="value">${card.set}</span>
-                                    </div>
-                                    <div class="info-item">
-                                        <span class="label">Rareté:</span>
-                                        <span class="value">${card.rarity}</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="card-stats">
-                                    <div class="stat">
-                                        <span class="stat-label">HP</span>
-                                        <span class="stat-value">${card.hp}</span>
-                                    </div>
-                                    <div class="stat">
-                                        <span class="stat-label">ATK</span>
-                                        <span class="stat-value">${card.attack}</span>
-                                    </div>
-                                    <div class="stat">
-                                        <span class="stat-label">DEF</span>
-                                        <span class="stat-value">${card.defense}</span>
-                                    </div>
-                                    <div class="stat power">
-                                        <span class="stat-label">PWR</span>
-                                        <span class="stat-value">${card.getPowerLevel()}</span>
-                                    </div>
-                                </div>
-
-                                ${card.attacks && card.attacks.length > 0 ? `
-                                    <div class="card-attacks">
-                                        <h3>Attaques</h3>
-                                        ${card.attacks.map(attack => `
-                                            <div class="attack-item">
-                                                <span class="attack-name">${attack.name}</span>
-                                                <span class="attack-damage">${attack.damage}</span>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                ` : ''}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
+            const cardElement = window.PokemonCard.createCardElement(card);
+            modal.innerHTML = '';
+            modal.appendChild(cardElement);
             modal.classList.remove('hidden');
             this.playModalSound();
-            
         } catch (error) {
-
+            this.showNotification('Erreur lors de l\'affichage de la carte en détail.', 'error');
         }
     }
 

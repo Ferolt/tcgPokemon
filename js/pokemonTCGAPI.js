@@ -7,44 +7,42 @@ class PokemonTCGService {
         this.holoBaseURL = 'https://poke-holo.simey.me';
         this.cache = new Map();
         this.sets = ['base1', 'fossil', 'jungle', 'base2']; 
+        // Clé API optionnelle (à renseigner si besoin)
+        this.apiKey = '5db3110c-5665-481c-910f-42883c62509a';
+    }
+
+    // fetch avec gestion de la clé API
+    async fetchWithAuth(url) {
+        const headers = this.apiKey ? { 'X-Api-Key': this.apiKey } : {};
+        return await fetch(url, { headers });
     }
 
     // recuperation carte aleatoire ia
     async fetchRandomCards(count = 50) {
         try {
-
             const allCards = [];
-            
-           
             for (const setId of this.sets) {
-                const response = await fetch(`${this.baseURL}/cards?q=set.id:${setId}&pageSize=20`);
+                const response = await this.fetchWithAuth(`${this.baseURL}/cards?q=set.id:${setId}&pageSize=50`);
                 if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
-                
                 const data = await response.json();
                 if (data.data && data.data.length > 0) {
                     allCards.push(...data.data);
                 }
             }
-
-          
+            if (allCards.length === 0) throw new Error('Aucune carte récupérée depuis l’API.');
             const shuffled = this.shuffleArray(allCards);
             const selectedCards = shuffled.slice(0, count);
-            
-
-            const gameCards = selectedCards.map(card => this.convertAPICardToGameCard(card));
-            
-
-
+            const gameCards = selectedCards.map(card => this.convertAPICardToGameCard(card)).filter(Boolean);
             return gameCards;
-            
         } catch (error) {
-
+            alert('Erreur lors de la récupération des cartes depuis l’API. Utilisation de cartes de secours.\n' + error);
             return this.getFallbackCards();
         }
     }
 
 
     convertAPICardToGameCard(apiCard) {
+        if (!apiCard || !apiCard.id || !apiCard.name || !apiCard.images) return null;
     
         let rarity = 'common';
         if (apiCard.rarity) {
@@ -134,6 +132,45 @@ class PokemonTCGService {
                 rarity: 'rare',
                 attacks: [{ name: 'Lance-Flammes', damage: 60 }],
                 set: 'Base Set'
+            },
+            {
+                id: 'bulbasaur-fallback',
+                name: 'Bulbizarre',
+                type: 'Grass',
+                hp: 45,
+                attack: 49,
+                defense: 49,
+                image: 'https://images.pokemontcg.io/base1/44_hires.png',
+                holoImage: 'https://poke-holo.simey.me/base1-44.webp',
+                rarity: 'common',
+                attacks: [{ name: 'Fouet Lianes', damage: 30 }],
+                set: 'Base Set'
+            },
+            {
+                id: 'squirtle-fallback',
+                name: 'Carapuce',
+                type: 'Water',
+                hp: 44,
+                attack: 48,
+                defense: 65,
+                image: 'https://images.pokemontcg.io/base1/63_hires.png',
+                holoImage: 'https://poke-holo.simey.me/base1-63.webp',
+                rarity: 'common',
+                attacks: [{ name: 'Pistolet à O', damage: 25 }],
+                set: 'Base Set'
+            },
+            {
+                id: 'jigglypuff-fallback',
+                name: 'Rondoudou',
+                type: 'Normal',
+                hp: 115,
+                attack: 45,
+                defense: 20,
+                image: 'https://images.pokemontcg.io/base1/54_hires.png',
+                holoImage: 'https://poke-holo.simey.me/base1-54.webp',
+                rarity: 'uncommon',
+                attacks: [{ name: 'Berceuse', damage: 0 }],
+                set: 'Base Set'
             }
         ];
     }
@@ -144,18 +181,14 @@ class PokemonTCGService {
             if (this.cache.has(cardId)) {
                 return this.cache.get(cardId);
             }
-
-            const response = await fetch(`${this.baseURL}/cards/${cardId}`);
+            const response = await this.fetchWithAuth(`${this.baseURL}/cards/${cardId}`);
             if (!response.ok) throw new Error(`Carte non trouvée: ${cardId}`);
-            
             const data = await response.json();
             const gameCard = this.convertAPICardToGameCard(data.data);
-            
             this.cache.set(cardId, gameCard);
             return gameCard;
-            
         } catch (error) {
-
+            alert('Erreur lors de la récupération de la carte par ID.');
             return null;
         }
     }
@@ -163,14 +196,12 @@ class PokemonTCGService {
     // carte par nom
     async searchCards(query, limit = 10) {
         try {
-            const response = await fetch(`${this.baseURL}/cards?q=name:${query}*&pageSize=${limit}`);
+            const response = await this.fetchWithAuth(`${this.baseURL}/cards?q=name:${query}*&pageSize=${limit}`);
             if (!response.ok) throw new Error(`Erreur de recherche: ${response.status}`);
-            
             const data = await response.json();
-            return data.data.map(card => this.convertAPICardToGameCard(card));
-            
+            return data.data.map(card => this.convertAPICardToGameCard(card)).filter(Boolean);
         } catch (error) {
-
+            alert('Erreur lors de la recherche de cartes.');
             return [];
         }
     }
