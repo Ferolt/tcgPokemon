@@ -855,3 +855,142 @@ left: 1rem;
 max-width: none;
 }
 }
+
+/* Bouton Historique */
+.history-button {
+    background: linear-gradient(to right, #6a11cb 0%, #2575fc 100%);
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.history-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.history-button:active {
+    transform: translateY(1px);
+}
+
+/* Modal Historique */
+.history-content {
+    max-width: 800px;
+    padding: 25px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 15px;
+    border: 2px solid #4ecdc4;
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.7);
+}
+
+#history-content {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding-right: 15px;
+}
+
+/* Style des éléments d'historique */
+.battle-history-item {
+    background: rgba(30, 30, 46, 0.8);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-left: 4px solid #4ecdc4;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.battle-history-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.victory-item {
+    border-left: 4px solid #4CAF50;
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.defeat-item {
+    border-left: 4px solid #F44336;
+    background: rgba(244, 67, 54, 0.1);
+}
+
+.battle-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.battle-history-date {
+    font-size: 0.85rem;
+    color: #aaa;
+}
+
+.battle-history-result {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.victory-text {
+    color: #4CAF50;
+}
+
+.defeat-text {
+    color: #F44336;
+}
+
+.battle-history-cards {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 15px 0;
+}
+
+.player-card-info, .ai-card-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 45%;
+}
+
+.card-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.card-power {
+    font-size: 0.9rem;
+    color: #ddd;
+}
+
+.vs-separator {
+    font-weight: bold;
+    color: #ffd700;
+    font-size: 1.2rem;
+}
+
+.battle-history-stats {
+    display: flex;
+    justify-content: space-around;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+
+.no-history {
+    text-align: center;
+    padding: 30px;
+    color: #aaa;
+    font-style: italic;
+}
