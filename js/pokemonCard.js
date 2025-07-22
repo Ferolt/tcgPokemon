@@ -140,20 +140,28 @@ class PokemonCardManager {
         this.isLoading = true;
 
         try {
-
             const apiCards = await window.pokemonTCGService.fetchRandomCards(50);
-            
-            this.allCards = apiCards.map(data => new PokemonCard(data));
+
+            // Fallback si l'API ne renvoie rien
+            if (!apiCards || apiCards.length === 0) {
+                console.warn('API indisponible, utilisation des cartes locales.');
+                this.allCards = pokemonCardsData.map(data => new PokemonCard(data));
+            } else {
+                this.allCards = apiCards.map(data => new PokemonCard(data));
+            }
             this.cardMap.clear();
-            
             this.allCards.forEach(card => {
                 this.cardMap.set(card.id, card);
             });
-
             this.initialized = true;
-
         } catch (error) {
-
+            // Fallback en cas d'erreur
+            this.allCards = pokemonCardsData.map(data => new PokemonCard(data));
+            this.cardMap.clear();
+            this.allCards.forEach(card => {
+                this.cardMap.set(card.id, card);
+            });
+            this.initialized = true;
         } finally {
             this.isLoading = false;
         }
