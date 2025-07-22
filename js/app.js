@@ -4,6 +4,7 @@ class PokemonTCGApp {
         this.deckManager = new DeckManager(this.storage);
         this.currentRating = 0;
         this.isReady = false;
+        this.gameEnded = false;
         this.initializeApp();
     }
 
@@ -38,6 +39,10 @@ class PokemonTCGApp {
         if (newGameBtn) {
             newGameBtn.addEventListener('click', () => this.startNewGame());
         }
+        const historyBtn = document.getElementById('history-btn');
+        if (historyBtn) {
+            historyBtn.addEventListener('click', () => this.showBattleHistory());
+        }
         const modalCloseBtn = document.querySelector('.modal-close');
         if (modalCloseBtn) {
             modalCloseBtn.addEventListener('click', () => this.hideCardModal());
@@ -67,7 +72,7 @@ class PokemonTCGApp {
     }
 
     async exchangeHandToDeck() {
-        if (!this.isReady) return;
+        if (!this.isReady || this.gameEnded) return;
         const playerCardId = this.storage.getPlayerCard();
         const aiCardId = this.storage.getAICard();
         if (!playerCardId || !aiCardId) {
@@ -176,7 +181,7 @@ class PokemonTCGApp {
     }
 
     dropCardToBattle(cardId) {
-        if (!this.isReady) return;
+        if (!this.isReady || this.gameEnded) return;
         const hand = this.storage.getHand();
         const cardIndex = hand.indexOf(cardId);
         if (cardIndex === -1) {
@@ -275,7 +280,6 @@ class PokemonTCGApp {
             }
         } catch (error) {}
     }
-
     async playAIDrawAnimation() {
         const aiZone = document.getElementById('ai-card-zone');
         if (!aiZone) return;
@@ -293,7 +297,7 @@ class PokemonTCGApp {
         this.updateAIBattleCard().catch(console.error);
         const playerCard = this.storage.getPlayerCard();
         const aiCard = this.storage.getAICard();
-        if (playerCard && aiCard) {
+        if (playerCard && aiCard && !this.gameEnded) {
             this.showBattleButton();
         } else {
             this.hideBattleButton();
@@ -316,7 +320,11 @@ class PokemonTCGApp {
                 }
             } catch (error) {}
         } else {
-            playerZone.innerHTML = `<div class="drop-hint"><i class="fas fa-plus"></i><span>Glissez une carte ici</span></div>`;
+            if (this.gameEnded) {
+                playerZone.innerHTML = `<div class="drop-hint game-ended"><i class="fas fa-flag-checkered"></i><span>Partie terminée</span></div>`;
+            } else {
+                playerZone.innerHTML = `<div class="drop-hint"><i class="fas fa-plus"></i><span>Glissez une carte ici</span></div>`;
+            }
         }
     }
 
@@ -337,7 +345,11 @@ class PokemonTCGApp {
                 }
             } catch (error) {}
         } else {
-            aiZone.innerHTML = `<div class="ai-hint"><i class="fas fa-robot"></i><span>IA en attente...</span></div>`;
+            if (this.gameEnded) {
+                aiZone.innerHTML = `<div class="ai-hint game-ended"><i class="fas fa-flag-checkered"></i><span>Partie terminée</span></div>`;
+            } else {
+                aiZone.innerHTML = `<div class="ai-hint"><i class="fas fa-robot"></i><span>IA en attente...</span></div>`;
+            }
         }
     }
 
@@ -345,7 +357,7 @@ class PokemonTCGApp {
         const battleBtn = document.getElementById('battle-btn');
         const playerCard = this.storage.getPlayerCard();
         const aiCard = this.storage.getAICard();
-        if (battleBtn && playerCard && aiCard) {
+        if (battleBtn && playerCard && aiCard && !this.gameEnded) {
             battleBtn.classList.remove('hidden');
         }
     }
@@ -358,13 +370,23 @@ class PokemonTCGApp {
     }
 
     async startBattle() {
-        if (!this.isReady) return;
+        if (!this.isReady || this.gameEnded) return;
         const playerCardId = this.storage.getPlayerCard();
         const aiCardId = this.storage.getAICard();
         if (!playerCardId || !aiCardId) {
             this.showNotification('Combat impossible - cartes manquantes', 'error');
             return;
         }
+        
+        // Vérifier si le joueur peut encore piocher
+        const playerDeck = this.storage.getDeck();
+        const playerHand = this.storage.getHand();
+        
+        if (playerDeck.length === 0 && playerHand.length === 1) {
+            // C'est la dernière carte du joueur
+            this.showNotification('Attention : c\'est votre dernière carte !', 'warning');
+        }
+        
         try {
             await this.playBattleAnimation();
             const battleResult = await this.calculateBattleResult(playerCardId, aiCardId);
@@ -374,9 +396,99 @@ class PokemonTCGApp {
             }
             this.saveBattleResult(battleResult);
             this.showBattleResult(battleResult);
+            
+            // Vérifier si c'est la fin de partie après le combat
+            setTimeout(() => {
+                this.checkEndGameCondition();
+            }, 3000);
+            
         } catch (error) {
             this.showNotification('Erreur pendant le combat', 'error');
         }
+    }
+
+    checkEndGameCondition() {
+        const playerDeck = this.storage.getDeck();
+        const playerHand = this.storage.getHand();
+        const aiDeck = this.storage.getAIDeck();
+        
+        // Si le joueur n'a plus de cartes dans son deck ET sa main
+        if (playerDeck.length === 0 && playerHand.length === 0) {
+            this.endGameWithWinner('ai');
+            return;
+        }
+        
+        // Si l'IA n'a plus de cartes
+        if (!aiDeck || aiDeck.length === 0) {
+            this.endGameWithWinner('player');
+            return;
+        }
+    }
+
+    endGameWithWinner(winner) {
+        this.gameEnded = true;
+        this.hideBattleButton();
+        
+        const gameStats = this.storage.getGameStats();
+        const finalScore = {
+            winner: winner,
+            playerWins: gameStats.wins || 0,
+            playerLosses: gameStats.losses || 0,
+            totalBattles: gameStats.totalBattles || 0,
+            timestamp: Date.now()
+        };
+        
+        // Sauvegarder le résultat final
+        this.storage.saveFinalGameResult(finalScore);
+        
+        setTimeout(() => {
+            this.showFinalGameResult(finalScore);
+        }, 1000);
+    }
+
+    showFinalGameResult(finalScore) {
+        const overlay = document.getElementById('result-overlay');
+        const icon = document.getElementById('result-icon');
+        const title = document.getElementById('result-title');
+        const message = document.getElementById('result-message');
+        
+        if (!overlay || !icon || !title || !message) return;
+        
+        if (finalScore.winner === 'player') {
+            icon.className = 'fas fa-crown';
+            title.textContent = 'VICTOIRE FINALE !';
+            message.innerHTML = `
+                <div class="final-score">
+                    <h3>🏆 Vous avez gagné la partie !</h3>
+                    <div class="score-details">
+                        <p><strong>Victoires :</strong> ${finalScore.playerWins}</p>
+                        <p><strong>Défaites :</strong> ${finalScore.playerLosses}</p>
+                        <p><strong>Total combats :</strong> ${finalScore.totalBattles}</p>
+                    </div>
+                    <button onclick="window.app.startNewGame()" class="new-game-btn">Nouvelle partie</button>
+                </div>
+            `;
+            overlay.className = 'result-overlay final-victory';
+            this.playFinalVictorySound();
+        } else {
+            icon.className = 'fas fa-flag';
+            title.textContent = 'DÉFAITE FINALE';
+            message.innerHTML = `
+                <div class="final-score">
+                    <h3>💀 L'IA a gagné la partie...</h3>
+                    <div class="score-details">
+                        <p><strong>Victoires :</strong> ${finalScore.playerWins}</p>
+                        <p><strong>Défaites :</strong> ${finalScore.playerLosses}</p>
+                        <p><strong>Total combats :</strong> ${finalScore.totalBattles}</p>
+                    </div>
+                    <button onclick="window.app.startNewGame()" class="new-game-btn">Nouvelle partie</button>
+                </div>
+            `;
+            overlay.className = 'result-overlay final-defeat';
+            this.playFinalDefeatSound();
+        }
+        
+        overlay.classList.remove('hidden');
     }
 
     async playBattleAnimation() {
@@ -428,16 +540,29 @@ class PokemonTCGApp {
         const title = document.getElementById('result-title');
         const message = document.getElementById('result-message');
         if (!overlay || !icon || !title || !message) return;
+        
+        const gameStats = this.storage.getGameStats();
+        
         if (battleResult.winner === 'player') {
             icon.className = 'fas fa-trophy';
             title.textContent = 'Victoire !';
-            message.textContent = `Votre ${battleResult.playerCard.name} a vaincu ${battleResult.aiCard.name} !`;
+            message.innerHTML = `
+                <p>Votre ${battleResult.playerCard.name} a vaincu ${battleResult.aiCard.name} !</p>
+                <div class="battle-stats">
+                    <p><strong>Victoires :</strong> ${gameStats.wins} | <strong>Défaites :</strong> ${gameStats.losses}</p>
+                </div>
+            `;
             overlay.className = 'result-overlay victory';
             this.playVictorySound();
         } else {
             icon.className = 'fas fa-skull';
             title.textContent = 'Défaite...';
-            message.textContent = `${battleResult.aiCard.name} a vaincu votre ${battleResult.playerCard.name}...`;
+            message.innerHTML = `
+                <p>${battleResult.aiCard.name} a vaincu votre ${battleResult.playerCard.name}...</p>
+                <div class="battle-stats">
+                    <p><strong>Victoires :</strong> ${gameStats.wins} | <strong>Défaites :</strong> ${gameStats.losses}</p>
+                </div>
+            `;
             overlay.className = 'result-overlay defeat';
             this.playDefeatSound();
         }
@@ -449,7 +574,9 @@ class PokemonTCGApp {
         if (overlay) {
             overlay.classList.add('hidden');
             setTimeout(() => {
-                this.clearBattleZone();
+                if (!this.gameEnded) {
+                    this.clearBattleZone();
+                }
             }, 300);
         }
     }
@@ -460,6 +587,76 @@ class PokemonTCGApp {
         this.deckManager.updateUI();
     }
 
+    showBattleHistory() {
+        const history = this.storage.getBattleHistory();
+        const gameResults = this.storage.getFinalGameResults();
+        
+        let historyHTML = '<div class="battle-history-modal">';
+        historyHTML += '<h2><i class="fas fa-history"></i> Historique des Combats</h2>';
+        
+        if (gameResults && gameResults.length > 0) {
+            historyHTML += '<h3>📊 Parties terminées</h3>';
+            historyHTML += '<div class="game-results">';
+            gameResults.slice(-5).reverse().forEach((game, index) => {
+                const date = new Date(game.timestamp).toLocaleDateString('fr-FR');
+                const winnerIcon = game.winner === 'player' ? '🏆' : '💀';
+                historyHTML += `
+                    <div class="game-result ${game.winner === 'player' ? 'victory' : 'defeat'}">
+                        <span class="game-winner">${winnerIcon} ${game.winner === 'player' ? 'Victoire' : 'Défaite'}</span>
+                        <span class="game-score">${game.playerWins}W - ${game.playerLosses}L</span>
+                        <span class="game-date">${date}</span>
+                    </div>
+                `;
+            });
+            historyHTML += '</div>';
+        }
+        
+        if (history && history.length > 0) {
+            historyHTML += '<h3>⚔️ Derniers combats</h3>';
+            historyHTML += '<div class="battle-list">';
+            history.slice(-10).reverse().forEach((battle, index) => {
+                const date = new Date(battle.timestamp).toLocaleDateString('fr-FR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                const winnerIcon = battle.winner === 'player' ? '🏆' : '💀';
+                historyHTML += `
+                    <div class="battle-item ${battle.winner === 'player' ? 'victory' : 'defeat'}">
+                        <div class="battle-cards">
+                            <span class="player-card">${battle.playerCard.name}</span>
+                            <span class="vs">VS</span>
+                            <span class="ai-card">${battle.aiCard.name}</span>
+                        </div>
+                        <div class="battle-result">
+                            <span class="winner">${winnerIcon} ${battle.winner === 'player' ? 'Victoire' : 'Défaite'}</span>
+                            <span class="powers">${battle.playerPower} vs ${battle.aiPower}</span>
+                            <span class="date">${date}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            historyHTML += '</div>';
+        } else {
+            historyHTML += '<p class="no-history">Aucun combat dans l\'historique</p>';
+        }
+        
+        historyHTML += '<button onclick="window.app.hideCardModal()" class="close-history-btn">Fermer</button>';
+        historyHTML += '</div>';
+        
+        const modal = document.getElementById('card-modal');
+        if (modal) {
+            modal.innerHTML = `<div class="modal-backdrop" onclick="window.app.hideCardModal()"><div class="modal-content history-content" onclick="event.stopPropagation()">${historyHTML}</div></div>`;
+            modal.classList.remove('hidden');
+        }
+    }
+    hideHistoryModal() {
+        const historyModal = document.getElementById('history-modal');
+        if (historyModal) {
+            historyModal.classList.add('hidden');
+        }
+    }
     initializeRatingSystem() {
         const stars = document.querySelectorAll('.star-rating');
         const submitBtn = document.getElementById('submit-rating');
