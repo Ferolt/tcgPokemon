@@ -429,7 +429,13 @@ class StorageManager {
     resetDrawTimer() {
         return this.save(this.keys.LAST_DRAW, 0);
     }
-
+ getFinalGameResults() {
+        return this.load(this.keys.FINAL_GAME_RESULTS) || [];
+    }
+    saveFinalGameResult(result) {
+        const res = this.getFinalGameResults(); res.push(result);
+        this.save(this.keys.FINAL_GAME_RESULTS, res);
+    }
     //  UTILITAIRES 
 
 
