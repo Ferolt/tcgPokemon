@@ -32,12 +32,28 @@
                     <i class="fas fa-hand-paper"></i>
                     <span>Main: <span id="hand-count">0</span></span>
                 </div>
+                   <button id="history-btn" class="history-button">
+                    <i class="fas fa-history"></i>
+                    <span>Historique</span>
+                </button>
             </div>
         </div>
     </header>
 
     <main class="main-container">
-        
+            <div id="history-modal" class="modal hidden">
+        <div class="modal-backdrop" onclick="window.app.hideHistoryModal()"></div>
+        <div class="modal-content history-content" onclick="event.stopPropagation()">
+            <button class="modal-close" onclick="window.app.hideHistoryModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            <h2><i class="fas fa-history"></i> Historique des Combats</h2>
+            <div id="history-content">
+                <!-- Le contenu de l'historique sera généré dynamiquement ici -->
+            </div>
+        </div>
+    </div>
+
         <!-- pioche -->
         <section class="draw-section">
             <div class="draw-container">
