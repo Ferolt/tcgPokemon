@@ -1,567 +1,690 @@
 class PokemonTCGApp {
     constructor() {
-        this.deckManager = new DeckManager();
-        this.cards = [];
-        this.selectedCardForBattle = null;
-        this.rating = 0;
-        this.draggedCard = null;
-        
-        // Éléments DOM
-        this.drawBtn = document.getElementById('drawBtn');
-        this.handContainer = document.getElementById('handContainer');
-        this.drawPile = document.getElementById('drawPile');
-        this.timerDisplay = document.getElementById('timer');
-        this.cardModal = document.getElementById('cardModal');
-        this.cardDetailContent = document.getElementById('cardDetailContent');
-        this.closeModal = document.getElementById('closeModal');
-        this.playerBattleCard = document.getElementById('playerBattleCard');
-        this.opponentBattleCard = document.getElementById('opponentBattleCard');
-        this.battleResult = document.getElementById('battleResult');
-        this.startBattleBtn = document.getElementById('startBattleBtn');
-        this.ratingSection = document.getElementById('ratingSection');
-        this.stars = document.querySelectorAll('.star');
-        this.commentBox = document.getElementById('commentBox');
-        this.submitRatingBtn = document.getElementById('submitRatingBtn');
-        
-        // Initialisation
-        this.init();
+        this.storage = new StorageManager();
+        this.deckManager = new DeckManager(this.storage);
+        this.currentRating = 0;
+        this.isReady = false;
+        this.gameEnded = false;
+        this.initializeApp();
     }
 
-    async init() {
-        // 1) Récupérer les cartes de l'API
-        await this.loadCards();
-
-        // 2) Charger l'état sauvegardé ou initialiser un nouveau jeu
-        this.loadGameState();
-
-        // 3) Mettre en place tous les événements (draw, drag&drop, bouton combat, rating…)
-        this.initEvents();
-
-        // 4) Démarrer le timer
-        this.startTimer();
-    }
-
-    async loadCards() {
+    async initializeApp() {
         try {
-            const apiKey = '';
-            const response = await fetch('https://api.pokemontcg.io/v2/cards?pageSize=250', {
-                headers: {
-                    'X-Api-Key': apiKey
-                }
-            });
-            if (!response.ok) {
-                throw new Error(`Erreur HTTP ${response.status}`);
-            }
-            const data = await response.json();
-            // On mappe les objets renvoyés par l'API vers notre classe PokemonCard
-            this.cards = data.data.map(card => new PokemonCard(
-                card.id,
-                card.name,
-                card.images.small,
-                card.types || ['Unknown'],
-                card.hp || '0',
-                (card.attacks || []).map(a => ({ name: a.name, damage: a.damage }))
-            ));
-            
-            // CORRECTION 1: Sauvegarder les cartes dans localStorage pour les refresh
-            localStorage.setItem('pokemonCards', JSON.stringify(this.cards.map(card => ({
-                id: card.id,
-                name: card.name,
-                image: card.image,
-                types: card.types,
-                hp: card.hp,
-                attacks: card.attacks
-            }))));
-            
-            return true;
+            this.showLoadingOverlay('Chargement des cartes...');
+            await this.loadGameState();
+            await this.initializeEventListeners();
+            await this.initializeDragAndDrop();
+            this.initializeRatingSystem();
+            await window.pokemonCardManager?.waitForInitialization();
+            await this.updateBattleZone();
+            this.isReady = true;
+            this.hideLoadingOverlay();
+            this.enableAllButtons();
         } catch (error) {
-            console.error('Failed to load cards from API:', error);
-            
-            // CORRECTION 1: Essayer de charger depuis localStorage en cas d'erreur
-            const savedCards = localStorage.getItem('pokemonCards');
-            if (savedCards) {
+            this.showNotification("Erreur d'initialisation de l'application", 'error');
+            this.hideLoadingOverlay();
+        }
+    }
+
+    async initializeEventListeners() {
+        const battleBtn = document.getElementById('battle-btn');
+        if (battleBtn) {
+            battleBtn.addEventListener('click', () => this.startBattle());
+        }
+        const exchangeBtn = document.getElementById('exchange-btn');
+        if (exchangeBtn) {
+            exchangeBtn.addEventListener('click', () => this.exchangeHandToDeck());
+        }
+        const newGameBtn = document.getElementById('new-game-btn');
+        if (newGameBtn) {
+            newGameBtn.addEventListener('click', () => this.startNewGame());
+        }
+        const historyBtn = document.getElementById('history-btn');
+        if (historyBtn) {
+            historyBtn.addEventListener('click', () => this.showBattleHistory());
+        }
+        const modalCloseBtn = document.querySelector('.modal-close');
+        if (modalCloseBtn) {
+            modalCloseBtn.addEventListener('click', () => this.hideCardModal());
+        }
+        const modalBackdrop = document.querySelector('.modal-backdrop');
+        if (modalBackdrop) {
+            modalBackdrop.addEventListener('click', () => this.hideCardModal());
+        }
+        const resultOverlay = document.getElementById('result-overlay');
+        if (resultOverlay) {
+            resultOverlay.addEventListener('click', (e) => {
+                if (e.target === resultOverlay) {
+                    this.hideResultOverlay();
+                }
+            });
+        }
+        this.disableAllButtons();
+    }
+
+    disableAllButtons() {
+        const btns = document.querySelectorAll('button');
+        btns.forEach(btn => btn.disabled = true);
+    }
+    enableAllButtons() {
+        const btns = document.querySelectorAll('button');
+        btns.forEach(btn => btn.disabled = false);
+    }
+
+    async exchangeHandToDeck() {
+        if (!this.isReady || this.gameEnded) return;
+        const playerCardId = this.storage.getPlayerCard();
+        const aiCardId = this.storage.getAICard();
+        if (!playerCardId || !aiCardId) {
+            this.showNotification('Les deux zones de combat doivent avoir une carte pour échanger', 'warning');
+            return;
+        }
+        if (this.storage.isExchangeUsed()) {
+            this.showNotification('Échange déjà utilisé pour cette main', 'warning');
+            return;
+        }
+        this.showLoadingOverlay('Échange en cours...');
+        try {
+            this.storage.savePlayerCard(aiCardId);
+            this.storage.saveAICard(playerCardId);
+            this.storage.markExchangeUsed();
+            await this.playExchangeAnimation();
+            await this.deckManager.updateUI();
+            await this.updateBattleZone();
+            this.hideLoadingOverlay();
+            this.showNotification('Cartes de combat échangées !', 'success');
+        } catch (error) {
+            this.hideLoadingOverlay();
+            this.showNotification("Erreur lors de l'échange", 'error');
+        }
+    }
+
+    async playExchangeAnimation() {
+        const playerZone = document.getElementById('player-card-zone');
+        const aiZone = document.getElementById('ai-card-zone');
+        if (!playerZone || !aiZone) return;
+        playerZone.style.transform = 'rotateY(180deg)';
+        aiZone.style.transform = 'rotateY(180deg)';
+        return new Promise(resolve => {
+            setTimeout(() => {
+                playerZone.style.transform = 'rotateY(0deg)';
+                aiZone.style.transform = 'rotateY(0deg)';
+                resolve();
+            }, 600);
+        });
+    }
+
+    showLoadingOverlay(message = 'Chargement...') {
+        let overlay = document.getElementById('loading-overlay');
+        let text = overlay?.querySelector('.loading-text');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'loading-overlay';
+            overlay.className = 'loading-overlay';
+            overlay.innerHTML = `<div class="loading-text">${message}</div>`;
+            document.body.appendChild(overlay);
+        }
+        if (!text) {
+            text = document.createElement('div');
+            text.className = 'loading-text';
+            overlay.appendChild(text);
+        }
+        text.textContent = message;
+        overlay.classList.remove('hidden');
+    }
+
+    hideLoadingOverlay() {
+        const overlay = document.getElementById('loading-overlay');
+        if (overlay) {
+            overlay.classList.add('hidden');
+        }
+    }
+
+    async initializeDragAndDrop() {
+        const dropZone = document.getElementById('player-card-zone');
+        if (!dropZone) return;
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, this.preventDefaults, false);
+            document.body.addEventListener(eventName, this.preventDefaults, false);
+        });
+        dropZone.addEventListener('dragenter', (e) => {
+            dropZone.classList.add('drag-over');
+            this.createDropZoneEffect(dropZone);
+        });
+        dropZone.addEventListener('dragleave', (e) => {
+            if (!dropZone.contains(e.relatedTarget)) {
+                dropZone.classList.remove('drag-over');
+            }
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const cardId = e.dataTransfer.getData('text/plain');
+            dropZone.classList.remove('drag-over');
+            if (cardId) {
                 try {
-                    const parsedCards = JSON.parse(savedCards);
-                    this.cards = parsedCards.map(card => new PokemonCard(
-                        card.id,
-                        card.name,
-                        card.image,
-                        card.types,
-                        card.hp,
-                        card.attacks
-                    ));
-                    this.showMessage('info', 'Cartes chargées depuis le cache local.');
-                    return true;
-                } catch (parseError) {
-                    console.error('Failed to parse saved cards:', parseError);
+                    this.dropCardToBattle(cardId);
+                } catch (error) {
+                    this.showNotification('Erreur lors du placement de la carte', 'error');
                 }
             }
-            
-            this.showMessage('error', 'Échec du chargement des cartes API. Utilisation de données de démo.');
-            this.cards = this.generateDemoCards(20);
-            return false;
+        });
+        dropZone.addEventListener('dragover', () => {
+            dropZone.classList.add('drag-over');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+    }
+
+    preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    dropCardToBattle(cardId) {
+        if (!this.isReady || this.gameEnded) return;
+        const hand = this.storage.getHand();
+        const cardIndex = hand.indexOf(cardId);
+        if (cardIndex === -1) {
+            this.showNotification('Carte non trouvée dans la main', 'error');
+            return;
+        }
+        try {
+            const dropZone = document.getElementById('player-card-zone');
+            if (dropZone) {
+                this.createDropExplosionEffect(dropZone);
+            }
+            hand.splice(cardIndex, 1);
+            this.storage.saveHand(hand);
+            this.storage.savePlayerCard(cardId);
+            setTimeout(() => {
+                this.playAICard().catch(console.error);
+            }, 100);
+            setTimeout(() => {
+                this.deckManager.updateUI();
+                this.updateBattleZone();
+                if (dropZone) {
+                    const playerCardElement = dropZone.querySelector('.pokemon-card-holo');
+                    if (playerCardElement) {
+                        playerCardElement.classList.add('card-inserted');
+                        setTimeout(() => {
+                            playerCardElement.classList.remove('card-inserted');
+                        }, 800);
+                    }
+                }
+            }, 200);
+            this.showNotification('Carte placée en combat !', 'success');
+        } catch (error) {
+            this.showNotification('Erreur lors du placement de la carte', 'error');
         }
     }
 
-    // Générer des cartes de démonstration
-    generateDemoCards(count) {
-        const pokemons = [
-            'Pikachu', 'Bulbasaur', 'Charmander', 'Squirtle', 'Jigglypuff',
-            'Meowth', 'Psyduck', 'Growlithe', 'Poliwag', 'Abra', 'Machop',
-            'Tentacool', 'Geodude', 'Ponyta', 'Slowpoke', 'Magnemite', 'Doduo',
-            'Gastly', 'Onix', 'Drowzee', 'Krabby', 'Voltorb', 'Cubone', 'Hitmonlee',
-            'Lickitung', 'Koffing', 'Rhyhorn', 'Tangela', 'Kangaskhan', 'Horsea'
-        ];
-        
-        const types = ['fire', 'water', 'grass', 'electric', 'psychic', 'fighting', 'dark', 'fairy'];
-        
-        const cards = [];
-        for (let i = 0; i < count; i++) {
-            const name = pokemons[Math.floor(Math.random() * pokemons.length)];
-            const type = types[Math.floor(Math.random() * types.length)];
-            
-            cards.push(new PokemonCard(
-                `card-${i}`,
-                name,
-                `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${Math.floor(Math.random() * 500) + 1}.png`,
-                [type],
-                Math.floor(Math.random() * 100) + 50,
-                [{ name: `${type} attack`, damage: `${Math.floor(Math.random() * 50) + 10}` }]
-            ));
+    createDropZoneEffect(dropZone) {
+        const rect = dropZone.getBoundingClientRect();
+        for (let i = 0; i < 8; i++) {
+            const particle = document.createElement('div');
+            particle.style.cssText = `position: fixed;width: 4px;height: 4px;background: #4ecdc4;border-radius: 50%;z-index: 1001;pointer-events: none;left: ${rect.left + Math.random() * rect.width}px;top: ${rect.top + Math.random() * rect.height}px;box-shadow: 0 0 10px #4ecdc4;`;
+            document.body.appendChild(particle);
+            particle.animate([
+                { opacity: 1,transform: 'scale(1) translateY(0)'},
+                { opacity: 0,transform: 'scale(0) translateY(-20px)'}
+            ], {
+                duration: 1000,
+                easing: 'ease-out'
+            }).onfinish = () => particle.remove();
         }
-        
-        return cards;
     }
 
-    loadGameState() {
-        const savedState = StorageManager.loadGameState();
-        if (savedState) {
-            // CORRECTION 1: Reconstruire les objets PokemonCard depuis les données sauvegardées
-            this.deckManager.drawPile = savedState.drawPile.map(cardData => 
-                new PokemonCard(cardData.id, cardData.name, cardData.image, cardData.types, cardData.hp, cardData.attacks)
-            );
-            this.deckManager.hand = savedState.hand.map(cardData => 
-                new PokemonCard(cardData.id, cardData.name, cardData.image, cardData.types, cardData.hp, cardData.attacks)
-            );
-            
-            // Restaurer les cartes de combat si elles existent
-            if (savedState.battleCard) {
-                this.deckManager.battleCard = new PokemonCard(
-                    savedState.battleCard.id, 
-                    savedState.battleCard.name, 
-                    savedState.battleCard.image, 
-                    savedState.battleCard.types, 
-                    savedState.battleCard.hp, 
-                    savedState.battleCard.attacks
-                );
+    createDropExplosionEffect(dropZone) {
+        const rect = dropZone.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const explosion = document.createElement('div');
+        explosion.style.cssText = `position: fixed;left: ${centerX}px;top: ${centerY}px;width: 20px;height: 20px;background: radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(78,205,196,0.8) 30%, transparent 70%);border-radius: 50%;z-index: 1002;pointer-events: none;transform: translate(-50%, -50%) scale(0);`;
+        document.body.appendChild(explosion);
+        explosion.animate([
+            { transform: 'translate(-50%, -50%) scale(0)', opacity: 1 },
+            { transform: 'translate(-50%, -50%) scale(3)', opacity: 0 }
+        ], {
+            duration: 600,
+            easing: 'ease-out'
+        }).onfinish = () => explosion.remove();
+        for (let i = 0; i < 12; i++) {
+            const particle = document.createElement('div');
+            particle.style.cssText = `position: fixed;left: ${centerX}px;top: ${centerY}px;width: 3px;height: 3px;background: ${['#4ecdc4', '#ff6b6b', '#45b7d1', '#ffd700'][i % 4]};border-radius: 50%;z-index: 1001;pointer-events: none;box-shadow: 0 0 8px currentColor;`;
+            document.body.appendChild(particle);
+            const angle = (Math.PI * 2 * i) / 12;
+            const distance = 80 + Math.random() * 40;
+            particle.animate([
+                { transform: 'translate(-50%, -50%) scale(1)',opacity: 1 },
+                { transform: `translate(${Math.cos(angle) * distance - 50}px, ${Math.sin(angle) * distance - 50}px) scale(0)`,opacity: 0 }
+            ], {
+                duration: 800 + Math.random() * 400,
+                easing: 'ease-out'
+            }).onfinish = () => particle.remove();
+        }
+    }
+
+    async playAICard() {
+        if (!this.isReady) return;
+        try {
+            const aiCardId = this.deckManager.drawRandomCardForAI();
+            if (aiCardId) {
+                await this.playAIDrawAnimation();
+                this.storage.saveAICard(aiCardId);
+                setTimeout(async () => {
+                    await this.updateAIBattleCard();
+                }, 100);
+                this.showNotification("L'IA a joué une carte !", 'info');
+            } else {
+                this.showNotification("L'IA n'a plus de cartes !", 'warning');
             }
-            if (savedState.opponentCard) {
-                this.deckManager.opponentCard = new PokemonCard(
-                    savedState.opponentCard.id, 
-                    savedState.opponentCard.name, 
-                    savedState.opponentCard.image, 
-                    savedState.opponentCard.types, 
-                    savedState.opponentCard.hp, 
-                    savedState.opponentCard.attacks
-                );
-            }
-            
-            this.deckManager.lastDraw = savedState.lastDraw ? new Date(savedState.lastDraw) : null;
-            this.showMessage('success', 'Partie chargée avec succès');
+        } catch (error) {}
+    }
+    async playAIDrawAnimation() {
+        const aiZone = document.getElementById('ai-card-zone');
+        if (!aiZone) return;
+        aiZone.style.boxShadow = '0 0 20px var(--primary)';
+        return new Promise(resolve => {
+            setTimeout(() => {
+                aiZone.style.boxShadow = '';
+                resolve();
+            }, 500);
+        });
+    }
+
+    updateBattleZone() {
+        this.updatePlayerBattleCard().catch(console.error);
+        this.updateAIBattleCard().catch(console.error);
+        const playerCard = this.storage.getPlayerCard();
+        const aiCard = this.storage.getAICard();
+        if (playerCard && aiCard && !this.gameEnded) {
+            this.showBattleButton();
         } else {
-            // Nouvelle partie : on initialise le deck à partir de this.cards (issues de l'API)
-            this.deckManager.initializeGame([...this.cards]);
-            this.deckManager.drawCards(5);
-            this.showMessage('info', 'Nouvelle partie commencée! Piochez vos premières cartes.');
+            this.hideBattleButton();
         }
-        this.renderGame();
     }
 
-    saveGameState() {
-        StorageManager.saveGameState(this.deckManager);
-    }
-
-    initEvents() {
-        // Bouton de pioche
-        this.drawBtn.addEventListener('click', () => this.handleDraw());
-        
-        // Clic sur la pioche (pour démo)
-        this.drawPile.addEventListener('click', () => this.handleDraw());
-        
-        // Fermeture de la modale
-        this.closeModal.addEventListener('click', () => {
-            this.cardModal.style.display = 'none';
-        });
-        
-        // Clic en dehors de la modale pour fermer
-        window.addEventListener('click', (e) => {
-            if (e.target === this.cardModal) {
-                this.cardModal.style.display = 'none';
-            }
-        });
-        
-        // Bouton de combat
-        this.startBattleBtn.addEventListener('click', () => this.startBattle());
-        
-        // Système d'évaluation
-        this.stars.forEach(star => {
-            star.addEventListener('click', (e) => {
-                const rating = parseInt(e.currentTarget.dataset.rating);
-                this.setRating(rating);
-            });
-        });
-        
-        // Envoi de l'évaluation
-        this.submitRatingBtn.addEventListener('click', () => this.submitRating());
-        
-        // Événements pour le drag and drop
-        this.initDragAndDropEvents();
-    }
-
-    initDragAndDropEvents() {
-        document.addEventListener('dragstart', (e) => {
-            const cardEl = e.target.closest('.card');
-            if (!cardEl) return;
-            this.draggedCard = cardEl;
-            cardEl.classList.add('dragging');
-            e.dataTransfer.setData('text/plain', cardEl.dataset.id);
-            e.dataTransfer.effectAllowed = 'move';
-        });
-
-        document.addEventListener('dragend', () => {
-            if (this.draggedCard) {
-                this.draggedCard.classList.remove('dragging');
-                this.draggedCard = null;
-            }
-        });
-
-        const dropZones = document.querySelectorAll('[data-drop-zone]');
-        dropZones.forEach((zone) => {
-            zone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-                zone.classList.add('drop-over');
-            });
-            
-            zone.addEventListener('dragleave', (e) => {
-                if (!zone.contains(e.relatedTarget)) {
-                    zone.classList.remove('drop-over');
+    async updatePlayerBattleCard() {
+        const playerZone = document.getElementById('player-card-zone');
+        const playerCardId = this.storage.getPlayerCard();
+        if (!playerZone) return;
+        if (playerCardId) {
+            try {
+                const card = await window.pokemonCardManager?.getCardById(playerCardId);
+                if (card) {
+                    const cardElement = card.createElement();
+                    cardElement.style.margin = '0';
+                    cardElement.addEventListener('click', () => this.showCardModal(card));
+                    playerZone.innerHTML = '';
+                    playerZone.appendChild(cardElement);
                 }
-            });
-            
-            zone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                zone.classList.remove('drop-over');
+            } catch (error) {}
+        } else {
+            if (this.gameEnded) {
+                playerZone.innerHTML = `<div class="drop-hint game-ended"><i class="fas fa-flag-checkered"></i><span>Partie terminée</span></div>`;
+            } else {
+                playerZone.innerHTML = `<div class="drop-hint"><i class="fas fa-plus"></i><span>Glissez une carte ici</span></div>`;
+            }
+        }
+    }
 
-                const cardId = e.dataTransfer.getData('text/plain');
-                if (!cardId) return;
-
-                const cardObj = this.findCardById(cardId);
-                if (!cardObj) return;
-
-                const dropZone = e.currentTarget;
-
-                if (dropZone.dataset.dropZone === 'battle-player') {
-                    if (this.deckManager.selectForBattle(cardId)) {
-                        this.showMessage('success', `${cardObj.name} sélectionné pour le combat !`);
-                        this.deckManager.generateOpponentCard();
-                        this.renderBattleCards();
-                        this.battleResult.textContent = 'Prêt pour le combat! Cliquez sur "Commencer le combat".';
-                        // Sauvegarder l'état après sélection
-                        this.saveGameState();
-                    }
-                } 
-                else if (dropZone.dataset.dropZone === 'pile') {
-                    if (this.deckManager.moveToDeck(cardId)) {
-                        this.showMessage('info', `${cardObj.name} défaussée dans la pioche.`);
-                        this.saveGameState();
-                        this.renderGame();
-                    }
+    async updateAIBattleCard() {
+        const aiZone = document.getElementById('ai-card-zone');
+        const aiCardId = this.storage.getAICard();
+        if (!aiZone) return;
+        if (aiCardId) {
+            try {
+                const card = await window.pokemonCardManager?.getCardById(aiCardId);
+                if (card) {
+                    const cardElement = card.createElement();
+                    cardElement.style.margin = '0';
+                    cardElement.addEventListener('click', () => this.showCardModal(card));
+                    aiZone.innerHTML = '';
+                    aiZone.appendChild(cardElement);
+                    this.showBattleButton();
                 }
-            });
-        });
+            } catch (error) {}
+        } else {
+            if (this.gameEnded) {
+                aiZone.innerHTML = `<div class="ai-hint game-ended"><i class="fas fa-flag-checkered"></i><span>Partie terminée</span></div>`;
+            } else {
+                aiZone.innerHTML = `<div class="ai-hint"><i class="fas fa-robot"></i><span>IA en attente...</span></div>`;
+            }
+        }
     }
 
-    findCardById(cardId) {
-        // Rechercher dans la main
-        const inHand = this.deckManager.hand.find(c => c.id === cardId);
-        if (inHand) return inHand;
-        
-        // Rechercher dans la pioche
-        const inPile = this.deckManager.drawPile.find(c => c.id === cardId);
-        if (inPile) return inPile;
-        
-        return null;
+    showBattleButton() {
+        const battleBtn = document.getElementById('battle-btn');
+        const playerCard = this.storage.getPlayerCard();
+        const aiCard = this.storage.getAICard();
+        if (battleBtn && playerCard && aiCard && !this.gameEnded) {
+            battleBtn.classList.remove('hidden');
+        }
     }
 
-    handleDraw() {
-        if (!this.deckManager.canDraw()) {
-            this.showMessage('error', `Vous devez attendre avant de pouvoir piocher à nouveau!`);
+    hideBattleButton() {
+        const battleBtn = document.getElementById('battle-btn');
+        if (battleBtn) {
+            battleBtn.classList.add('hidden');
+        }
+    }
+
+    async startBattle() {
+        if (!this.isReady || this.gameEnded) return;
+        const playerCardId = this.storage.getPlayerCard();
+        const aiCardId = this.storage.getAICard();
+        if (!playerCardId || !aiCardId) {
+            this.showNotification('Combat impossible - cartes manquantes', 'error');
             return;
         }
         
-        if (this.deckManager.drawCards(5)) {
-            this.showMessage('success', 'Vous avez pioché 5 nouvelles cartes!');
-            this.saveGameState();
-            this.renderGame();
-        } else {
-            this.showMessage('error', 'Plus de cartes dans la pioche!');
+        // Vérifier si le joueur peut encore piocher
+        const playerDeck = this.storage.getDeck();
+        const playerHand = this.storage.getHand();
+        
+        if (playerDeck.length === 0 && playerHand.length === 1) {
+            // C'est la dernière carte du joueur
+            this.showNotification('Attention : c\'est votre dernière carte !', 'warning');
         }
-    }
-
-    renderGame() {
-        // Afficher la main du joueur
-        this.renderHand();
         
-        // Afficher la carte de combat sélectionnée
-        this.renderBattleCards();
-        
-        // Mettre à jour le bouton de pioche
-        this.updateDrawButton();
-    }
-
-    renderHand() {
-        this.handContainer.innerHTML = '';
-        
-        this.deckManager.hand.forEach(card => {
-            const cardElement = this.createCardElement(card);
-            this.handContainer.appendChild(cardElement);
-        });
-        
-        if (this.deckManager.hand.length === 0) {
-            this.handContainer.innerHTML = '<div class="message info"><i class="fas fa-info-circle"></i> Votre main est vide. Piochez des cartes!</div>';
-        }
-    }
-
-    createCardElement(card) {
-        const cardElement = document.createElement('div');
-        cardElement.className = 'card';
-        cardElement.dataset.id = card.id;
-        cardElement.draggable = true;
-        cardElement.innerHTML = `
-            <div class="card-front" style="background: ${card.getTypeColor()}">
-                <div class="card-type">${card.types[0]}</div>
-                <div class="card-name">${card.name}</div>
-                <div class="card-image" style="background-image: url('${card.image}')"></div>
-                <div class="card-hp">HP: ${card.hp}</div>
-            </div>
-            <div class="card-back">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Pok%C3%A9_Ball_icon.svg/768px-Pok%C3%A9_Ball_icon.svg.png" alt="Pokeball">
-            </div>
-        `;
-        
-        // Événement pour afficher les détails
-        cardElement.addEventListener('click', (e) => {
-            if (e.target.closest('.card')) {
-                this.showCardDetail(card);
+        try {
+            await this.playBattleAnimation();
+            const battleResult = await this.calculateBattleResult(playerCardId, aiCardId);
+            if (!battleResult) {
+                this.showNotification('Erreur lors du calcul du combat', 'error');
+                return;
             }
-        });
-        
-        // Événement pour sélectionner pour le combat
-        cardElement.addEventListener('dblclick', () => {
-            this.selectCardForBattle(card);
-        });
-        
-        return cardElement;
-    }
-
-    renderBattleCards() {
-        this.playerBattleCard.innerHTML = '';
-        this.opponentBattleCard.innerHTML = '';
-
-        if (this.deckManager.battleCard) {
-            const playerCardElement = this.createBattleCardElement(this.deckManager.battleCard, 'player');
-            this.playerBattleCard.appendChild(playerCardElement);
-        }
-
-        if (this.deckManager.opponentCard) {
-            const opponentCardElement = this.createBattleCardElement(this.deckManager.opponentCard, 'opponent');
-            this.opponentBattleCard.appendChild(opponentCardElement);
-        }
-
-        // Activer/désactiver le bouton de combat
-        this.startBattleBtn.disabled = !(this.deckManager.battleCard && this.deckManager.opponentCard);
-    }
-
-    // CORRECTION 2: Afficher seulement l'image du Pokémon dans la zone de combat
-    createBattleCardElement(card, playerType = 'player') {
-        const cardElement = document.createElement('div');
-        cardElement.className = `battle-card ${playerType}`;
-        cardElement.innerHTML = `
-            <div class="battle-pokemon-container" style="
-                width: 100%; 
-                height: 200px; 
-                display: flex; 
-                flex-direction: column; 
-                align-items: center; 
-                justify-content: center;
-                background: linear-gradient(135deg, ${card.getTypeColor()}, rgba(255,255,255,0.1));
-                border-radius: 15px;
-                border: 3px solid ${card.getTypeColor()};
-                box-shadow: 0 8px 16px rgba(0,0,0,0.3);
-                position: relative;
-                overflow: hidden;
-            ">
-                <div class="pokemon-name" style="
-                    position: absolute;
-                    top: 10px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    color: white;
-                    font-weight: bold;
-                    font-size: 1.1em;
-                    text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
-                    z-index: 2;
-                ">${card.name}</div>
-                
-                <div class="pokemon-image" style="
-                    width: 140px;
-                    height: 140px;
-                    background-image: url('${card.image}');
-                    background-size: contain;
-                    background-repeat: no-repeat;
-                    background-position: center;
-                    filter: drop-shadow(3px 3px 6px rgba(0,0,0,0.4));
-                    z-index: 1;
-                "></div>
-                
-                <div class="pokemon-hp" style="
-                    position: absolute;
-                    bottom: 10px;
-                    right: 15px;
-                    background: rgba(255,255,255,0.9);
-                    color: #333;
-                    padding: 5px 10px;
-                    border-radius: 20px;
-                    font-weight: bold;
-                    font-size: 0.9em;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                ">HP: ${card.hp}</div>
-                
-                <div class="pokemon-type" style="
-                    position: absolute;
-                    bottom: 10px;
-                    left: 15px;
-                    background: rgba(0,0,0,0.7);
-                    color: white;
-                    padding: 5px 10px;
-                    border-radius: 15px;
-                    font-size: 0.8em;
-                    text-transform: uppercase;
-                ">${card.types[0]}</div>
-            </div>
-        `;
-        return cardElement;
-    }
-
-    updateDrawButton() {
-        if (this.deckManager.canDraw()) {
-            this.drawBtn.disabled = false;
-            this.drawBtn.innerHTML = '<i class="fas fa-plus-circle"></i> Piocher (5 cartes)';
-        } else {
-            this.drawBtn.disabled = true;
-            const timeLeft = this.deckManager.getTimeUntilNextDraw();
-            const minutes = Math.floor(timeLeft / 60000);
-            const seconds = Math.floor((timeLeft % 60000) / 1000);
-            this.drawBtn.innerHTML = `<i class="fas fa-clock"></i> Disponible dans ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-        }
-    }
-
-    startTimer() {
-        setInterval(() => {
-            if (this.deckManager.lastDraw) {
-                const timeLeft = this.deckManager.getTimeUntilNextDraw();
-                if (timeLeft > 0) {
-                    const minutes = Math.floor(timeLeft / 60000);
-                    const seconds = Math.floor((timeLeft % 60000) / 1000);
-                    this.timerDisplay.textContent = `Prochain tirage dans: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-                } else {
-                    this.timerDisplay.textContent = 'Vous pouvez piocher maintenant!';
-                }
-            }
+            this.saveBattleResult(battleResult);
+            this.showBattleResult(battleResult);
             
-            this.updateDrawButton();
+            // Vérifier si c'est la fin de partie après le combat
+            setTimeout(() => {
+                this.checkEndGameCondition();
+            }, 3000);
+            
+        } catch (error) {
+            this.showNotification('Erreur pendant le combat', 'error');
+        }
+    }
+
+    checkEndGameCondition() {
+        const playerDeck = this.storage.getDeck();
+        const playerHand = this.storage.getHand();
+        const aiDeck = this.storage.getAIDeck();
+        
+        // Si le joueur n'a plus de cartes dans son deck ET sa main
+        if (playerDeck.length === 0 && playerHand.length === 0) {
+            this.endGameWithWinner('ai');
+            return;
+        }
+        
+        // Si l'IA n'a plus de cartes
+        if (!aiDeck || aiDeck.length === 0) {
+            this.endGameWithWinner('player');
+            return;
+        }
+    }
+
+    endGameWithWinner(winner) {
+        this.gameEnded = true;
+        this.hideBattleButton();
+        
+        const gameStats = this.storage.getGameStats();
+        const finalScore = {
+            winner: winner,
+            playerWins: gameStats.wins || 0,
+            playerLosses: gameStats.losses || 0,
+            totalBattles: gameStats.totalBattles || 0,
+            timestamp: Date.now()
+        };
+        
+        // Sauvegarder le résultat final
+        this.storage.saveFinalGameResult(finalScore);
+        
+        setTimeout(() => {
+            this.showFinalGameResult(finalScore);
         }, 1000);
     }
 
-    showCardDetail(card) {
-        this.cardDetailContent.innerHTML = `
-            <h2>${card.name}</h2>
-            <img src="${card.image}" class="card-detail-image">
-            
-            <div class="card-detail-info">
-                <div class="detail-item">
-                    <h3><i class="fas fa-heart"></i> Points de Vie</h3>
-                    <p>${card.hp} HP</p>
+    showFinalGameResult(finalScore) {
+        const overlay = document.getElementById('result-overlay');
+        const icon = document.getElementById('result-icon');
+        const title = document.getElementById('result-title');
+        const message = document.getElementById('result-message');
+        
+        if (!overlay || !icon || !title || !message) return;
+        
+        if (finalScore.winner === 'player') {
+            icon.className = 'fas fa-crown';
+            title.textContent = 'VICTOIRE FINALE !';
+            message.innerHTML = `
+                <div class="final-score">
+                    <h3>🏆 Vous avez gagné la partie !</h3>
+                    <div class="score-details">
+                        <p><strong>Victoires :</strong> ${finalScore.playerWins}</p>
+                        <p><strong>Défaites :</strong> ${finalScore.playerLosses}</p>
+                        <p><strong>Total combats :</strong> ${finalScore.totalBattles}</p>
+                    </div>
+                    <button onclick="window.app.startNewGame()" class="new-game-btn">Nouvelle partie</button>
                 </div>
-                
-                <div class="detail-item">
-                    <h3><i class="fas fa-bolt"></i> Type</h3>
-                    <p>${card.types.join(', ')}</p>
+            `;
+            overlay.className = 'result-overlay final-victory';
+            this.playFinalVictorySound();
+        } else {
+            icon.className = 'fas fa-flag';
+            title.textContent = 'DÉFAITE FINALE';
+            message.innerHTML = `
+                <div class="final-score">
+                    <h3>💀 L'IA a gagné la partie...</h3>
+                    <div class="score-details">
+                        <p><strong>Victoires :</strong> ${finalScore.playerWins}</p>
+                        <p><strong>Défaites :</strong> ${finalScore.playerLosses}</p>
+                        <p><strong>Total combats :</strong> ${finalScore.totalBattles}</p>
+                    </div>
+                    <button onclick="window.app.startNewGame()" class="new-game-btn">Nouvelle partie</button>
                 </div>
-                
-                ${card.attacks.length > 0 ? `
-                <div class="detail-item">
-                    <h3><i class="fas fa-fire"></i> Attaques</h3>
-                    <ul>
-                        ${card.attacks.map(attack => `
-                            <li><strong>${attack.name}</strong>: ${attack.damage || '0'} dégâts</li>
-                        `).join('')}
-                    </ul>
-                </div>
-                ` : ''}
-                
-                <div class="detail-item">
-                    <h3><i class="fas fa-id-card"></i> ID Carte</h3>
-                    <p>${card.id}</p>
-                </div>
-            </div>
-        `;
-        this.cardModal.style.display = 'flex';
+            `;
+            overlay.className = 'result-overlay final-defeat';
+            this.playFinalDefeatSound();
+        }
+        
+        overlay.classList.remove('hidden');
     }
 
-    selectCardForBattle(card) {
-        if (this.deckManager.selectForBattle(card.id)) {
-            this.showMessage('success', `${card.name} sélectionné pour le combat!`);
-            this.deckManager.generateOpponentCard();
-            this.renderBattleCards();
-            this.battleResult.textContent = 'Prêt pour le combat! Cliquez sur "Commencer le combat".';
-            // Sauvegarder l'état après sélection
-            this.saveGameState();
+    async playBattleAnimation() {
+        const overlay = document.getElementById('battle-overlay');
+        if (!overlay) return;
+        overlay.classList.remove('hidden');
+        this.playBattleSound();
+        return new Promise(resolve => {
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                resolve();
+            }, 2000);
+        });
+    }
+
+    async calculateBattleResult(playerCardId, aiCardId) {
+        try {
+            const playerCard = await window.pokemonCardManager?.getCardById(playerCardId);
+            const aiCard = await window.pokemonCardManager?.getCardById(aiCardId);
+            if (!playerCard || !aiCard) {
+                throw new Error('Cartes non trouvées pour le combat');
+            }
+            const playerPower = playerCard.getPowerLevel();
+            const aiPower = aiCard.getPowerLevel();
+            const playerFinalPower = playerPower + (Math.random() * 20 - 10);
+            const aiFinalPower = aiPower + (Math.random() * 20 - 10);
+            const result = {
+                playerCard: playerCard,
+                aiCard: aiCard,
+                playerPower: Math.round(playerFinalPower),
+                aiPower: Math.round(aiFinalPower),
+                winner: playerFinalPower > aiFinalPower ? 'player' : 'ai',
+                timestamp: Date.now()
+            };
+            return result;
+        } catch (error) {
+            return null;
         }
     }
 
-    startBattle() {
-        if (!this.deckManager.battleCard || !this.deckManager.opponentCard) return;
-        
-        const result = this.deckManager.simulateBattle();
-        let resultText = '';
-        
-        switch (result) {
-            case 'win':
-                resultText = `Victoire! Votre ${this.deckManager.battleCard.name} a battu ${this.deckManager.opponentCard.name}!`;
-                break;
-            case 'lose':
-                resultText = `Défaite! ${this.deckManager.opponentCard.name} a battu votre ${this.deckManager.battleCard.name}.`;
-                break;
-            case 'draw':
-                resultText = `Match nul! ${this.deckManager.battleCard.name} et ${this.deckManager.opponentCard.name} sont à égalité.`;
-                break;
-        }
-        
-        this.battleResult.innerHTML = `
-            <div style="font-size: 1.2rem; margin-bottom: 10px;">${resultText}</div>
-            <div>Votre attaque: ${this.deckManager.battleCard.getAttackDamage()} dégâts</div>
-            <div>Attaque adverse: ${this.deckManager.opponentCard.getAttackDamage()} dégâts</div>
-        `;
-        
-        // Afficher la section d'évaluation
-        this.ratingSection.style.display = 'block';
+    saveBattleResult(battleResult) {
+        this.storage.addBattleToHistory(battleResult);
+        this.storage.updateStatsAfterBattle(battleResult.winner);
     }
 
-    setRating(rating) {
-        this.rating = rating;
-        this.stars.forEach((star, index) => {
+    showBattleResult(battleResult) {
+        const overlay = document.getElementById('result-overlay');
+        const icon = document.getElementById('result-icon');
+        const title = document.getElementById('result-title');
+        const message = document.getElementById('result-message');
+        if (!overlay || !icon || !title || !message) return;
+        
+        const gameStats = this.storage.getGameStats();
+        
+        if (battleResult.winner === 'player') {
+            icon.className = 'fas fa-trophy';
+            title.textContent = 'Victoire !';
+            message.innerHTML = `
+                <p>Votre ${battleResult.playerCard.name} a vaincu ${battleResult.aiCard.name} !</p>
+                <div class="battle-stats">
+                    <p><strong>Victoires :</strong> ${gameStats.wins} | <strong>Défaites :</strong> ${gameStats.losses}</p>
+                </div>
+            `;
+            overlay.className = 'result-overlay victory';
+            this.playVictorySound();
+        } else {
+            icon.className = 'fas fa-skull';
+            title.textContent = 'Défaite...';
+            message.innerHTML = `
+                <p>${battleResult.aiCard.name} a vaincu votre ${battleResult.playerCard.name}...</p>
+                <div class="battle-stats">
+                    <p><strong>Victoires :</strong> ${gameStats.wins} | <strong>Défaites :</strong> ${gameStats.losses}</p>
+                </div>
+            `;
+            overlay.className = 'result-overlay defeat';
+            this.playDefeatSound();
+        }
+        overlay.classList.remove('hidden');
+    }
+
+    hideResultOverlay() {
+        const overlay = document.getElementById('result-overlay');
+        if (overlay) {
+            overlay.classList.add('hidden');
+            setTimeout(() => {
+                if (!this.gameEnded) {
+                    this.clearBattleZone();
+                }
+            }, 300);
+        }
+    }
+
+    clearBattleZone() {
+        this.storage.clearBattleCards();
+        this.updateBattleZone();
+        this.deckManager.updateUI();
+    }
+
+    showBattleHistory() {
+        const history = this.storage.getBattleHistory();
+        const gameResults = this.storage.getFinalGameResults();
+        
+        let historyHTML = '<div class="battle-history-modal">';
+        historyHTML += '<h2><i class="fas fa-history"></i> Historique des Combats</h2>';
+        
+        if (gameResults && gameResults.length > 0) {
+            historyHTML += '<h3>📊 Parties terminées</h3>';
+            historyHTML += '<div class="game-results">';
+            gameResults.slice(-5).reverse().forEach((game, index) => {
+                const date = new Date(game.timestamp).toLocaleDateString('fr-FR');
+                const winnerIcon = game.winner === 'player' ? '🏆' : '💀';
+                historyHTML += `
+                    <div class="game-result ${game.winner === 'player' ? 'victory' : 'defeat'}">
+                        <span class="game-winner">${winnerIcon} ${game.winner === 'player' ? 'Victoire' : 'Défaite'}</span>
+                        <span class="game-score">${game.playerWins}W - ${game.playerLosses}L</span>
+                        <span class="game-date">${date}</span>
+                    </div>
+                `;
+            });
+            historyHTML += '</div>';
+        }
+        
+        if (history && history.length > 0) {
+            historyHTML += '<h3>⚔️ Derniers combats</h3>';
+            historyHTML += '<div class="battle-list">';
+            history.slice(-10).reverse().forEach((battle, index) => {
+                const date = new Date(battle.timestamp).toLocaleDateString('fr-FR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                const winnerIcon = battle.winner === 'player' ? '🏆' : '💀';
+                historyHTML += `
+                    <div class="battle-item ${battle.winner === 'player' ? 'victory' : 'defeat'}">
+                        <div class="battle-cards">
+                            <span class="player-card">${battle.playerCard.name}</span>
+                            <span class="vs">VS</span>
+                            <span class="ai-card">${battle.aiCard.name}</span>
+                        </div>
+                        <div class="battle-result">
+                            <span class="winner">${winnerIcon} ${battle.winner === 'player' ? 'Victoire' : 'Défaite'}</span>
+                            <span class="powers">${battle.playerPower} vs ${battle.aiPower}</span>
+                            <span class="date">${date}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            historyHTML += '</div>';
+        } else {
+            historyHTML += '<p class="no-history">Aucun combat dans l\'historique</p>';
+        }
+        
+        historyHTML += '<button onclick="window.app.hideCardModal()" class="close-history-btn">Fermer</button>';
+        historyHTML += '</div>';
+        
+        const modal = document.getElementById('card-modal');
+        if (modal) {
+            modal.innerHTML = `<div class="modal-backdrop" onclick="window.app.hideCardModal()"><div class="modal-content history-content" onclick="event.stopPropagation()">${historyHTML}</div></div>`;
+            modal.classList.remove('hidden');
+        }
+    }
+    hideHistoryModal() {
+        const historyModal = document.getElementById('history-modal');
+        if (historyModal) {
+            historyModal.classList.add('hidden');
+        }
+    }
+    initializeRatingSystem() {
+        const stars = document.querySelectorAll('.star-rating');
+        const submitBtn = document.getElementById('submit-rating');
+        stars.forEach(star => {
+            star.addEventListener('click', () => {
+                const rating = parseInt(star.dataset.rating);
+                this.currentRating = rating;
+                this.highlightStars(rating);
+            });
+            star.addEventListener('mouseenter', () => {
+                const rating = parseInt(star.dataset.rating);
+                this.highlightStars(rating);
+            });
+        });
+        const starsContainer = document.querySelector('.stars-rating');
+        if (starsContainer) {
+            starsContainer.addEventListener('mouseleave', () => {
+                this.updateStarsDisplay();
+            });
+        }
+        if (submitBtn) {
+            submitBtn.addEventListener('click', () => this.submitBattleRating());
+        }
+    }
+
+    highlightStars(rating) {
+        const stars = document.querySelectorAll('.star-rating');
+        stars.forEach((star, index) => {
             if (index < rating) {
                 star.classList.add('active');
             } else {
@@ -570,59 +693,162 @@ class PokemonTCGApp {
         });
     }
 
-    submitRating() {
-        if (this.rating === 0) {
-            this.showMessage('error', 'Veuillez donner une note avant de soumettre');
+    updateStarsDisplay() {
+        this.highlightStars(this.currentRating);
+    }
+
+    async submitBattleRating() {
+        const comment = document.getElementById('battle-comment')?.value || '';
+        if (this.currentRating === 0) {
+            this.showNotification('Veuillez donner une note', 'warning');
             return;
         }
-        
-        const comment = this.commentBox.value || 'Pas de commentaire';
-        this.showMessage('success', `Merci pour votre évaluation de ${this.rating} étoiles!`);
-        
-        // Réinitialiser pour le prochain combat
-        this.rating = 0;
-        this.commentBox.value = '';
-        this.stars.forEach(star => star.classList.remove('active'));
-        this.ratingSection.style.display = 'none';
-        
-        // Réinitialiser le combat
-        this.deckManager.battleCard = null;
-        this.deckManager.opponentCard = null;
-        this.renderBattleCards();
-        this.battleResult.textContent = 'Sélectionnez une carte pour commencer un nouveau combat';
-        
-        // Sauvegarder l'état après réinitialisation
-        this.saveGameState();
+        const rating = {
+            rating: this.currentRating,
+            comment: comment,
+            timestamp: Date.now()
+        };
+        this.storage.addRatingToHistory(rating);
+        this.showNotification(`Combat noté ${this.currentRating}/5 étoiles !`, 'success');
+        this.currentRating = 0;
+        this.highlightStars(0);
+        if (document.getElementById('battle-comment')) {
+            document.getElementById('battle-comment').value = '';
+        }
+        this.hideResultOverlay();
     }
 
-    moveCardToDeck(cardId) {
-        if (this.deckManager.moveToDeck(cardId)) {
-            this.showMessage('info', `Carte défaussée dans la pioche.`);
-            this.saveGameState();
-            this.renderGame();
+    async showCardModal(cardData) {
+        const modal = document.getElementById('card-modal');
+        if (!modal) return;
+        try {
+            let card = cardData;
+            if (typeof cardData === 'string') {
+                card = await window.pokemonCardManager?.getCardById(cardData);
+            }
+            if (!card) return;
+            modal.innerHTML = `<div class="modal-backdrop" onclick="window.app.hideCardModal()"><div class="modal-content" onclick="event.stopPropagation()"><button class="modal-close" onclick="window.app.hideCardModal()"><i class="fas fa-times"></i></button><div class="modal-card-container"><div class="modal-card-image"><img src="${card.image}" alt="${card.name}" onerror="this.src='https://images.pokemontcg.io/base1/4_hires.png'" /></div><div class="modal-card-details"><h2 class="card-name">${card.name}</h2><div class="card-info-grid"><div class="info-item"><span class="label">Type:</span><span class="value">${card.type}</span></div><div class="info-item"><span class="label">Set:</span><span class="value">${card.set}</span></div><div class="info-item"><span class="label">Rareté:</span><span class="value">${card.rarity}</span></div></div><div class="card-stats"><div class="stat"><span class="stat-label">HP</span><span class="stat-value">${card.hp}</span></div><div class="stat"><span class="stat-label">ATK</span><span class="stat-value">${card.attack}</span></div><div class="stat"><span class="stat-label">DEF</span><span class="stat-value">${card.defense}</span></div><div class="stat power"><span class="stat-label">PWR</span><span class="stat-value">${card.getPowerLevel()}</span></div></div>${card.attacks && card.attacks.length > 0 ? `<div class="card-attacks"><h3>Attaques</h3>${card.attacks.map(attack => `<div class="attack-item"><span class="attack-name">${attack.name}</span><span class="attack-damage">${attack.damage}</span></div>`).join('')}</div>` : ''}</div></div></div></div>`;
+            modal.classList.remove('hidden');
+            this.playModalSound();
+        } catch (error) {}
+    }
+
+    hideCardModal() {
+        const modal = document.getElementById('card-modal');
+        if (modal) {
+            modal.classList.add('hidden');
         }
     }
 
-    showMessage(type, text) {
-        // Créer un élément de message
-        const message = document.createElement('div');
-        message.className = `message ${type}`;
-        message.innerHTML = `
-            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-            ${text}
-        `;
-        
-        // Ajouter au conteneur de main
-        this.handContainer.prepend(message);
-        
-        // Supprimer après 5 seconds
+    async startNewGame() {
+        this.isReady = false;
+        this.disableAllButtons();
+        try {
+            this.showLoadingOverlay('Nouvelle partie...');
+            await window.pokemonCardManager?.waitForInitialization();
+            await this.deckManager.resetDeck();
+            this.clearBattleZone();
+            this.storage.resetExchangeStatus();
+            await this.deckManager.updateUI();
+            await this.updateBattleZone();
+            this.hideLoadingOverlay();
+            this.isReady = true;
+            this.enableAllButtons();
+            this.showNotification('Nouvelle partie commencée !', 'success');
+        } catch (error) {
+            this.hideLoadingOverlay();
+            this.showNotification("Erreur lors de la création d'une nouvelle partie", 'error');
+        }
+    }
+
+    async loadGameState() {
+        try {
+            await window.pokemonCardManager?.waitForInitialization();
+            const deck = this.storage.getDeck();
+            if (deck.length === 0) {
+                await this.deckManager.resetDeck();
+            }
+            await this.updateBattleZone();
+        } catch (error) {
+            await this.deckManager.resetDeck();
+        }
+    }
+
+    playBattleSound() {
+        this.playSound([
+            { freq: 200, duration: 0.1 },
+            { freq: 300, duration: 0.1 },
+            { freq: 400, duration: 0.2 }
+        ]);
+    }
+    playVictorySound() {
+        this.playSound([
+            { freq: 523, duration: 0.2 },
+            { freq: 659, duration: 0.2 },
+            { freq: 784, duration: 0.3 }
+        ]);
+    }
+    playDefeatSound() {
+        this.playSound([
+            { freq: 200, duration: 0.3 },
+            { freq: 150, duration: 0.3 },
+            { freq: 100, duration: 0.4 }
+        ]);
+    }
+    playDrawSound() {
+        this.playSound([
+            { freq: 440, duration: 0.1 },
+            { freq: 880, duration: 0.1 }
+        ]);
+    }
+    playModalSound() {
+        this.playSound([
+            { freq: 800, duration: 0.1 }
+        ]);
+    }
+    playSound(sequence) {
+        if (typeof AudioContext === 'undefined') return;
+        try {
+            const audioContext = new AudioContext();
+            let currentTime = audioContext.currentTime;
+            sequence.forEach(note => {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                oscillator.frequency.setValueAtTime(note.freq, currentTime);
+                gainNode.gain.setValueAtTime(0.1, currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + note.duration);
+                oscillator.start(currentTime);
+                oscillator.stop(currentTime + note.duration);
+                currentTime += note.duration;
+            });
+        } catch (error) {}
+    }
+    showNotification(message, type = 'info') {
+        const notification = document.getElementById('notification');
+        const icon = notification?.querySelector('.notification-icon');
+        const text = notification?.querySelector('.notification-text');
+        if (!notification || !icon || !text) return;
+        const icons = {
+            success: 'fas fa-check-circle',
+            error: 'fas fa-exclamation-circle',
+            warning: 'fas fa-exclamation-triangle',
+            info: 'fas fa-info-circle'
+        };
+        icon.className = `notification-icon ${icons[type] || icons.info}`;
+        text.textContent = message;
+        notification.className = `notification ${type}`;
+        setTimeout(() => notification.classList.add('show'), 10);
         setTimeout(() => {
-            message.remove();
-        }, 5000);
+            notification.classList.remove('show');
+            setTimeout(() => {
+                notification.className = 'notification hidden';
+            }, 300);
+        }, 3000);
     }
 }
 
-// Démarrer l'application lorsque la page est chargée
-window.addEventListener('DOMContentLoaded', () => {
-    const app = new PokemonTCGApp();
+document.addEventListener('DOMContentLoaded', () => {
+    window.app = new PokemonTCGApp();
 });
