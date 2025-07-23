@@ -43,7 +43,7 @@ class PokemonTCGApp {
 
     async loadCards() {
         try {
-            const apiKey = 'dd2932a7-a17d-47c2-aa1c-98ac1f6ddc9e';
+            const apiKey = '';
             const response = await fetch('https://api.pokemontcg.io/v2/cards?pageSize=250', {
                 headers: {
                     'X-Api-Key': apiKey
