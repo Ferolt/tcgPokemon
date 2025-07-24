@@ -7,6 +7,9 @@ class PokemonTCGService {
         this.holoBaseURL = 'https://poke-holo.simey.me';
         this.cache = new Map();
         this.sets = ['base1', 'fossil', 'jungle', 'base2']; 
+        this.headers   = {
+                 'X-Api-Key': '5db3110c-5665-481c-910f-42883c62509a'
+               };
     }
 
     // recuperation carte aleatoire ia
@@ -17,9 +20,11 @@ class PokemonTCGService {
             
            
             for (const setId of this.sets) {
-                const response = await fetch(`${this.baseURL}/cards?q=set.id:${setId}&pageSize=20`);
-                if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+
                 
+                const response = await fetch(`${this.baseURL}/cards?q=set.id:${setId}&pageSize=20`);
+                { headers: this.headers }
+                if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
                 const data = await response.json();
                 if (data.data && data.data.length > 0) {
                     allCards.push(...data.data);
@@ -146,6 +151,7 @@ class PokemonTCGService {
             }
 
             const response = await fetch(`${this.baseURL}/cards/${cardId}`);
+            { headers: this.headers }
             if (!response.ok) throw new Error(`Carte non trouvée: ${cardId}`);
             
             const data = await response.json();
@@ -164,6 +170,7 @@ class PokemonTCGService {
     async searchCards(query, limit = 10) {
         try {
             const response = await fetch(`${this.baseURL}/cards?q=name:${query}*&pageSize=${limit}`);
+            { headers: this.headers }
             if (!response.ok) throw new Error(`Erreur de recherche: ${response.status}`);
             
             const data = await response.json();

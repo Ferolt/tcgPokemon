@@ -529,11 +529,11 @@ class PokemonTCGApp {
         }
     }
 
-    saveBattleResult(battleResult) {
-        this.storage.addBattleToHistory(battleResult);
-        this.storage.updateStatsAfterBattle(battleResult.winner);
-    }
-
+  saveBattleResult(battleResult) {
+    this.storage.addBattleToHistory(battleResult);
+    
+    this.storage.updateStatsAfterBattle(battleResult.winner);
+}
     showBattleResult(battleResult) {
         const overlay = document.getElementById('result-overlay');
         const icon = document.getElementById('result-icon');

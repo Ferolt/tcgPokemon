@@ -11,7 +11,8 @@ class StorageManager {
             RATING_HISTORY: 'pokemon_tcg_rating_history',
             GAME_STATS: 'pokemon_tcg_game_stats',
             TRAINER_PROFILE: 'pokemon_tcg_trainer_profile',
-            EXCHANGE_USED: 'pokemon_tcg_exchange_used'
+            EXCHANGE_USED: 'pokemon_tcg_exchange_used',
+            FINAL_GAME_RESULTS: 'pokemon_tcg_final_game_results'
         };
         
         this.initializeDefaultData();
@@ -43,6 +44,7 @@ class StorageManager {
         if (!this.getGameStats()) {
             this.saveGameStats({
                 totalGames: 0,
+                totalBattles: 0,
                 wins: 0,
                 losses: 0,
                 draws: 0,
@@ -334,29 +336,30 @@ class StorageManager {
         };
     }
 
-    updateStatsAfterBattle(result) {
-        const stats = this.getGameStats();
-        
-        stats.totalGames++;
-        
-        switch (result) {
-            case 'win':
-                stats.wins++;
-                break;
-            case 'loss':
-                stats.losses++;
-                break;
-            case 'draw':
-                stats.draws++;
-                break;
-        }
-        
-       
-        stats.winRate = stats.totalGames > 0 ? 
-            Math.round((stats.wins / stats.totalGames) * 100) : 0;
-        
-        return this.saveGameStats(stats);
+updateStatsAfterBattle(result) {
+    const stats = this.getGameStats();
+    
+    stats.totalBattles = (stats.totalBattles || 0) + 1; // Ajouter totalBattles si manquant
+    
+    // CORRECTION: Adapter aux valeurs 'player' et 'ai'
+    switch (result) {
+        case 'player': // Le joueur gagne
+            stats.wins = (stats.wins || 0) + 1;
+            break;
+        case 'ai': // L'IA gagne (le joueur perd)
+            stats.losses = (stats.losses || 0) + 1;
+            break;
+        case 'draw': // Match nul
+            stats.draws = (stats.draws || 0) + 1;
+            break;
     }
+    
+    // Calculer le taux de victoire
+    stats.winRate = stats.totalBattles > 0 ? 
+        Math.round((stats.wins / stats.totalBattles) * 100) : 0;
+    
+    return this.saveGameStats(stats);
+}
 
 
     updateCardsDrawn(count) {
